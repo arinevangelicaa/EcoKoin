@@ -1,7 +1,7 @@
 
 # EcoKoin
  
-deskripsi singkat aplikasi
+EcoKoin adalah aplikasi desktop berbasis C# (WPF) yang dirancang untuk mendukung aksi iklim (Climate Action) melalui pemantauan dan efisiensi energi PC secara interaktif.
  
 ## EcoKoin Team
 Ketua Kelompok: Adnan Abdul Majid
