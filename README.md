@@ -5,6 +5,5 @@ EcoKoin adalah aplikasi desktop berbasis C# (WPF) yang dirancang untuk mendukung
  
 ## EcoKoin Team
 Ketua Kelompok: Adnan Abdul Majid
-- Anggota 1: Adnan Abdul Majid
-- Anggota 2: Arin Evangelica Patabang
-- Anggota 3: Rida Larasati
+- Anggota 1: Arin Evangelica Patabang
+- Anggota 2: Rida Larasati - 24/539400/TK/59821
