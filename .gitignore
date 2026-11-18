@@ -1,1 +1,6 @@
 .codegraph
+# Visual Studio and .NET build output
+.vs/
+bin/
+obj/
+*.csproj.user
