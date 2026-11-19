@@ -1,0 +1,349 @@
+﻿<Window x:Class="EcoKoin.WPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="EcoKoin - Dashboard" Width="1440" Height="1024"
+        MinWidth="1100" MinHeight="720"
+        WindowStartupLocation="CenterScreen"
+        Background="#F6F8F7" FontFamily="Segoe UI">
+    <Window.Resources>
+        <SolidColorBrush x:Key="Forest" Color="#2B4B3E"/>
+        <SolidColorBrush x:Key="Muted" Color="#678177"/>
+        <SolidColorBrush x:Key="Panel" Color="#E8F2F0"/>
+        <SolidColorBrush x:Key="Mint" Color="#B5D6D3"/>
+        <SolidColorBrush x:Key="Orange" Color="#E77942"/>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Forest}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Forest}"/>
+            <Setter Property="FontSize" Value="32"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,12,0,8"/>
+        </Style>
+        <Style x:Key="OrangeButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource Orange}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SidebarButton" TargetType="Button">
+            <Setter Property="Foreground" Value="#E4EFEB"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="17,14"/>
+            <Setter Property="Margin" Value="0,0,0,7"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="19" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- SIDEBAR -->
+        <Border Grid.Column="0" Background="{StaticResource Forest}">
+            <StackPanel Margin="24,30,24,20">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,42">
+                    <Image Source="/Assets/Images/logo.png" Width="52" Height="52" Stretch="Uniform"/>
+                    <StackPanel Margin="9,1,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="EcoKoin" FontSize="25" FontWeight="Bold" Foreground="White"/>
+                        <TextBlock Text="Small Steps, Big Impact" FontSize="12" Foreground="#E2EDE9"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                    <Border Width="48" Height="48" CornerRadius="24" Background="{StaticResource Orange}">
+                        <TextBlock Text="●" Foreground="White" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="12,1,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Hermione" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="hermione@mail.hogwarts.ac.id" FontSize="11" Foreground="#AFC7BE"/>
+                    </StackPanel>
+                </StackPanel>
+                <Button Style="{StaticResource SidebarButton}" Background="{StaticResource Panel}" Foreground="{StaticResource Orange}" Content="⌂  Dashboard"/>
+                <Button Style="{StaticResource SidebarButton}" Content="◎  Misi &amp; Reward"/>
+                <Button Style="{StaticResource SidebarButton}" Content="▥  Analisis"/>
+                <Button Style="{StaticResource SidebarButton}" Content="⚙  Pengaturan"/>
+            </StackPanel>
+        </Border>
+
+        <!-- DASHBOARD -->
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+            <Grid MinWidth="980" Margin="39,31,40,30">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- HEADER -->
+                <Grid Grid.Row="0" Margin="0,0,0,25">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="☀" FontSize="43" Foreground="{StaticResource Orange}" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <StackPanel>
+                            <TextBlock Text="Hai, Hermione!" FontSize="32" FontWeight="Bold" Foreground="{StaticResource Forest}"/>
+                            <TextBlock Text="Pantau efisiensi energi, interaksi EcoPet, dan misi penghematan harian kamu" FontSize="15" Foreground="#303C38" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <Border Grid.Column="1" Background="{StaticResource Panel}" CornerRadius="23" Padding="17,11" VerticalAlignment="Center">
+                        <TextBlock Text="●  Catur Tunggal" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource Forest}"/>
+                    </Border>
+                </Grid>
+
+                <!-- FOUR STAT CARDS -->
+                <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,23">
+                    <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="0,0,8,0" Padding="17,22,15,18" MinHeight="148">
+                        <StackPanel>
+                            <TextBlock Text="TOTAL ECOKOIN" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="800 Koin" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="+120 Koin minggu ini" FontSize="14" Foreground="#2D3834"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="8,0,8,0" Padding="17,22,15,18">
+                        <StackPanel>
+                            <TextBlock Text="CUACA HARI INI" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="31° C" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="Cerah Berawan" FontSize="14" Foreground="#2D3834"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="8,0,8,0" Padding="17,22,15,18">
+                        <StackPanel>
+                            <TextBlock Text="KELEMBAPAN UDARA" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="65%" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="Udara Lembap" FontSize="14" Foreground="#2D3834"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="8,0,0,0" Padding="17,22,15,18">
+                        <StackPanel>
+                            <TextBlock Text="STATUS DAYA" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="75%" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="On Battery" FontSize="14" Foreground="#2D3834"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- PET + RECOMMENDATIONS -->
+                <Grid Grid.Row="2" Margin="0,0,0,23">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="24" Padding="24" Margin="0,0,12,0" MinHeight="280">
+                        <StackPanel>
+                            <TextBlock Text="ECOPET" Style="{StaticResource SectionTitle}"/>
+                            <Grid Margin="0,15,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="170"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Image Grid.Column="0" Source="/Assets/Images/happy.png" Width="165" Height="185" Stretch="Uniform"/>
+                                <StackPanel Grid.Column="1" Margin="3,7,0,0">
+                                    <TextBlock Text="Yeay! Kamu sudah menghemat energi hari ini!" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="17" Foreground="{StaticResource Muted}"/>
+                                    <TextBlock Text="Happy &amp; Healthy" FontSize="16" Foreground="{StaticResource Muted}" Margin="0,11,0,9"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="●  Level 5" Foreground="{StaticResource Orange}" FontWeight="SemiBold" FontSize="13"/>
+                                        <TextBlock Grid.Column="1" Text="350 / 500 XP" Foreground="{StaticResource Muted}" FontSize="12"/>
+                                    </Grid>
+                                    <ProgressBar Value="70" Maximum="100" Height="9" Margin="0,6,0,0" Foreground="{StaticResource Orange}" Background="#C6D5D0" BorderThickness="0"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Background="{StaticResource Panel}" CornerRadius="24" Padding="24" Margin="12,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="REKOMENDASI ADAPTIF CUACA" Style="{StaticResource SectionTitle}" Margin="0,0,0,16"/>
+                            <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="16" Margin="0,0,0,11">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Turunkan kecerahan ke 40%" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Cuaca berawan, layar tidak perlu terang maksimal" TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource Muted}" Margin="0,6,10,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                            <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="16">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Sleep setelah 5 menit idle" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Kamu sering meninggalkan PC" FontSize="13" Foreground="{StaticResource Muted}" Margin="0,6,10,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- ANALYTICS + DAILY QUEST -->
+                <Grid Grid.Row="3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="24" Padding="24" Margin="0,0,12,0" MinHeight="385">
+                        <StackPanel>
+                            <TextBlock Text="ANALISIS MINGGUAN" Style="{StaticResource SectionTitle}" Margin="0,0,0,16"/>
+                            <Grid Margin="0,0,0,12">
+                                <TextBlock Text="Minggu ini" Foreground="{StaticResource Muted}" FontSize="13"/>
+                                <TextBlock Text="7 hari terakhir" HorizontalAlignment="Right" Foreground="{StaticResource Muted}" FontSize="13"/>
+                            </Grid>
+                            <UniformGrid Columns="3" Margin="0,0,0,11">
+                                <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="12" Margin="0,0,5,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Energi dihemat" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="2.5 kWh" FontSize="23" FontWeight="Bold" Foreground="{StaticResource Muted}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="12" Margin="5,0,5,0">
+                                    <StackPanel>
+                                        <TextBlock Text="CO2 dihindari" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="1.2 kg" FontSize="23" FontWeight="Bold" Foreground="{StaticResource Muted}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="12" Margin="5,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Biaya dihemat" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="Rp12.500" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Muted}"/>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+                            <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="12,13,12,10">
+                                <StackPanel>
+                                    <Grid>
+                                        <TextBlock Text="Tren harian penghematan" FontSize="14" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="Ilustrasi" HorizontalAlignment="Right" FontSize="12" Foreground="{StaticResource Orange}"/>
+                                    </Grid>
+                                    <Viewbox Height="95" Stretch="Fill" Margin="0,12,0,0">
+                                        <Canvas Width="410" Height="85">
+                                            <Line X1="0" X2="410" Y1="24" Y2="24" Stroke="#9DBFBA" StrokeThickness="1"/>
+                                            <Line X1="0" X2="410" Y1="48" Y2="48" Stroke="#9DBFBA" StrokeThickness="1"/>
+                                            <Line X1="0" X2="410" Y1="72" Y2="72" Stroke="#9DBFBA" StrokeThickness="1"/>
+                                            <Polyline Points="10,66 75,58 140,52 205,46 270,40 335,34 400,26" Stroke="{StaticResource Orange}" StrokeThickness="2" Fill="Transparent"/>
+                                            <Ellipse Canvas.Left="6" Canvas.Top="62" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="71" Canvas.Top="54" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="136" Canvas.Top="48" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="201" Canvas.Top="42" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="266" Canvas.Top="36" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="331" Canvas.Top="30" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="396" Canvas.Top="22" Width="10" Height="10" Fill="{StaticResource Forest}"/>
+                                        </Canvas>
+                                    </Viewbox>
+                                    <UniformGrid Columns="7" Margin="0,0,0,0">
+                                        <TextBlock Text="Sen" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="Sel" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="Rab" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="Kam" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="Jum" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="Sab" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="Min" FontSize="12" Foreground="{StaticResource Forest}" HorizontalAlignment="Right"/>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="Lihat Selengkapnya   ➜" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,15,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Background="{StaticResource Panel}" CornerRadius="24" Padding="24" Margin="12,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="DAILY QUEST" Style="{StaticResource SectionTitle}" Margin="0,0,0,14"/>
+                            <Grid>
+                                <TextBlock Text="2 dari 3 misi selesai" Foreground="{StaticResource Muted}" FontSize="13"/>
+                                <TextBlock Text="67%" HorizontalAlignment="Right" Foreground="{StaticResource Orange}" FontSize="13"/>
+                            </Grid>
+                            <ProgressBar Value="67" Maximum="100" Height="8" Margin="0,8,0,12" Foreground="{StaticResource Forest}" Background="#C5D4CF" BorderThickness="0"/>
+                            <Border Background="{StaticResource Mint}" CornerRadius="18" Padding="15,12" Margin="0,0,0,9">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Aktifkan sleep saat ditinggal" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="16"/>
+                                        <TextBlock Text="Selesai • siap diklaim" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Klaim +30" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                            <Border Background="{StaticResource Mint}" CornerRadius="18" Padding="15,12" Margin="0,0,0,9">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Power saver selama 4 jam" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="16"/>
+                                        <TextBlock Text="Dalam proses • target 4 jam" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" BorderBrush="{StaticResource Muted}" BorderThickness="1" CornerRadius="8" Background="#E6F1EE" Padding="25,8" VerticalAlignment="Center">
+                                        <TextBlock Text="+20" Foreground="{StaticResource Muted}"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            <Border Background="{StaticResource Mint}" CornerRadius="18" Padding="15,12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Terapkan 1 rekomendasi cuaca" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="16"/>
+                                        <TextBlock Text="Selesai • siap diklaim" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Klaim +15" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                            <TextBlock Text="Lihat Selengkapnya   ➜" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,15,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>
