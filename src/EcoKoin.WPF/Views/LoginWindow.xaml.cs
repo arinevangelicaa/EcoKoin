@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net.Mail;
 using System.Windows;
 using System.Windows.Controls;
+using EcoKoin.WPF.Models;
 
 namespace EcoKoin.WPF.Views
 {
@@ -80,6 +81,16 @@ namespace EcoKoin.WPF.Views
             }
 
             _rememberedEmail = RememberMe.IsChecked == true ? email : null;
+
+            // First demo login: show onboarding once on this device before Dashboard.
+            // This remains a frontend demo; do not interpret it as server authentication.
+            if (!WelcomePreferencesStore.Load().HasCompletedOnboarding)
+            {
+                var welcome = new WelcomeWindow { Owner = this };
+                if (welcome.ShowDialog() != true)
+                    return; // User closed onboarding: keep Login visible.
+            }
+
             // Demo: this is NOT real authentication. Never store the password.
             var dashboard = Owner as MainWindow ?? Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
             if (dashboard == null)
