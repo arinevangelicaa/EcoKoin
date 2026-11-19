@@ -1,0 +1,33 @@
+﻿<UserControl x:Class="EcoKoin.WPF.Components.SidebarMenuItem"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+
+    <Button x:Name="MenuButton"
+            Style="{StaticResource SidebarMenuButtonStyle}"
+            Height="52"
+            Margin="0,0,0,8">
+
+        <StackPanel Orientation="Horizontal"
+                    VerticalAlignment="Center">
+
+            <!-- Icon -->
+            <TextBlock Text="{Binding IconGlyph, ElementName=Root}"
+                       FontFamily="Segoe MDL2 Assets"
+                       FontSize="16"
+                       Width="20"
+                       VerticalAlignment="Center"/>
+
+            <!-- Label -->
+            <TextBlock Text="{Binding MenuText, ElementName=Root}"
+                       FontFamily="{StaticResource HeadingFont}"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Margin="10,0,0,0"
+                       VerticalAlignment="Center"/>
+
+        </StackPanel>
+
+    </Button>
+
+</UserControl>

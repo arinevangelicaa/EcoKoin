@@ -1,0 +1,308 @@
+﻿<UserControl x:Class="EcoKoin.WPF.Views.QuestRewardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource CanvasBrush}"
+             ClipToBounds="True">
+
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="QuestMuted" Color="#678177"/>
+        <SolidColorBrush x:Key="QuestLine" Color="#CCD9D5"/>
+        <SolidColorBrush x:Key="QuestDark" Color="#2C4C3E"/>
+        <SolidColorBrush x:Key="QuestText" Color="#222826"/>
+
+        <Style x:Key="QuestSectionTitle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource HeadingFont}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{StaticResource QuestMuted}"/>
+        </Style>
+
+        <Style x:Key="QuestCard" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource MistyBrush}"/>
+            <Setter Property="CornerRadius" Value="20"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+
+        <Style x:Key="QuestMissionRow" TargetType="Border">
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="Height" Value="59"/>
+            <Setter Property="Background" Value="{StaticResource OceanCyanBrush}"/>
+        </Style>
+
+        <!-- UI only: no click events or coin-balance changes. -->
+        <Style x:Key="QuestClaimButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource SunOrangeBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="{StaticResource HeadingFont}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Padding" Value="11,5"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Desktop compact; no ScrollViewer, no reward-redemption catalog. -->
+    <Grid Margin="18,12,18,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="58"/>
+            <RowDefinition Height="162"/>
+            <RowDefinition Height="12"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- HEADER -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Misi &amp; Reward"
+                           FontFamily="{StaticResource HeadingFont}"
+                           FontSize="25" FontWeight="SemiBold"
+                           Foreground="{StaticResource ForestGreenBrush}"/>
+                <TextBlock Text="Hemat energi, kumpulkan koin, dan bahagiakan EcoPet kamu."
+                           FontFamily="{StaticResource BodyFont}"
+                           FontSize="11" Foreground="{StaticResource QuestText}"
+                           TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+
+            <Border Grid.Column="1" Background="{StaticResource MistyBrush}"
+                    CornerRadius="18" Padding="11,7" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="/Assets/Images/QuestMapPin.png"
+                           Width="15" Height="15" Stretch="Uniform"
+                           Margin="0,0,6,0"/>
+                    <TextBlock Text="Catur Tunggal"
+                               FontFamily="{StaticResource HeadingFont}"
+                               FontSize="11" FontWeight="SemiBold"
+                               Foreground="{StaticResource ForestGreenBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- BALANCE + ECOPET -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="33*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="67*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Total EcoKoin; display only -->
+            <Border Grid.Column="0" Style="{StaticResource QuestCard}">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="TOTAL ECOKOIN" Style="{StaticResource QuestSectionTitle}"/>
+                        <Image Source="/Assets/Images/QuestCoins.png"
+                               Width="19" Height="19" Stretch="Uniform"
+                               HorizontalAlignment="Right"/>
+                    </Grid>
+                    <TextBlock Text="800 Koin"
+                               FontFamily="{StaticResource HeadingFont}"
+                               FontSize="26" FontWeight="SemiBold"
+                               Foreground="{StaticResource ForestGreenBrush}"
+                               Margin="0,6,0,0"/>
+                    <TextBlock Text="+120 Koin minggu ini"
+                               FontFamily="{StaticResource BodyFont}"
+                               FontSize="11" Foreground="{StaticResource QuestText}"
+                               Margin="0,4,0,0"/>
+                    <TextBlock Text="45 Koin siap diklaim dari misi hari ini"
+                               FontFamily="{StaticResource BodyFont}"
+                               FontSize="10" Foreground="{StaticResource QuestMuted}"
+                               Margin="0,9,0,0" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Reuse user's existing happy.png (same EcoPet as the dashboard). -->
+            <Border Grid.Column="2" Style="{StaticResource QuestCard}" Padding="14,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image Grid.Column="0" Source="/Assets/Images/happy.png"
+                           Width="108" Height="137" Stretch="Uniform"
+                           VerticalAlignment="Center"/>
+
+                    <Grid Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,7">
+                            <TextBlock Text="ECOPET" Style="{StaticResource QuestSectionTitle}"/>
+                            <TextBlock Text="Happy &amp; Healthy" HorizontalAlignment="Right"
+                                       Foreground="{StaticResource QuestMuted}" FontSize="10"/>
+                        </Grid>
+                        <TextBlock Grid.Row="1" Text="Langkah kecilmu bikin aku tumbuh!"
+                                   FontFamily="{StaticResource HeadingFont}"
+                                   FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{StaticResource ForestGreenBrush}"
+                                   TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="2"
+                                   Text="Terus hemat energi secara konsisten untuk menjaga EcoPet tetap sehat."
+                                   FontFamily="{StaticResource BodyFont}" FontSize="11"
+                                   Foreground="{StaticResource QuestMuted}"
+                                   TextWrapping="Wrap" Margin="0,4,0,6"/>
+                        <StackPanel Grid.Row="3">
+                            <Grid>
+                                <TextBlock Text="●  Level 5" FontSize="10"
+                                           Foreground="{StaticResource SunOrangeBrush}"/>
+                                <TextBlock Text="350 / 500 XP" HorizontalAlignment="Right"
+                                           FontSize="10" Foreground="{StaticResource QuestMuted}"/>
+                            </Grid>
+                            <ProgressBar Maximum="500" Value="350" Height="7"
+                                         Margin="0,4,0,0" BorderThickness="0"
+                                         Foreground="{StaticResource SunOrangeBrush}"
+                                         Background="{StaticResource QuestLine}"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- DAILY QUESTS: 3 rows. No exchange/redeem section. -->
+        <Border Grid.Row="3" Style="{StaticResource QuestCard}" Padding="16,13"
+                VerticalAlignment="Top">
+            <StackPanel>
+
+                <Grid Margin="0,0,0,9">
+                    <TextBlock Text="MISI HARIAN" Style="{StaticResource QuestSectionTitle}"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Image Source="/Assets/Images/QuestClock.png"
+                               Width="13" Height="13" Stretch="Uniform"
+                               Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Diperbarui setiap hari pukul 00.00"
+                                   FontSize="10" Foreground="{StaticResource QuestMuted}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- PROGRESS -->
+                <Grid>
+                    <TextBlock Text="2 dari 3 misi selesai"
+                               FontSize="11" Foreground="{StaticResource QuestMuted}"/>
+                    <TextBlock Text="67%" FontSize="10"
+                               Foreground="{StaticResource SunOrangeBrush}"
+                               HorizontalAlignment="Right"/>
+                </Grid>
+                <ProgressBar Value="67" Maximum="100" Height="7" Margin="0,5,0,9"
+                             Foreground="{StaticResource ForestGreenBrush}"
+                             Background="{StaticResource QuestLine}"
+                             BorderThickness="0"/>
+
+                <!-- MISSION 1 -->
+                <Border Style="{StaticResource QuestMissionRow}" Margin="0,0,0,7">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="34"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="104"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="30" Height="30"
+                                CornerRadius="15" Background="{StaticResource MistyBrush}">
+                            <Image Source="/Assets/Images/QuestCheck.png"
+                                   Width="20" Height="20" Stretch="Uniform"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,6,0">
+                            <TextBlock Text="Aktifkan sleep saat ditinggal"
+                                       FontFamily="{StaticResource HeadingFont}"
+                                       FontWeight="SemiBold" FontSize="13"
+                                       Foreground="{StaticResource ForestGreenBrush}"/>
+                            <TextBlock Text="Selesai • siap diklaim · PC sudah masuk sleep saat tidak digunakan."
+                                       FontSize="10" Foreground="{StaticResource QuestMuted}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <Button Grid.Column="2" Content="Klaim +30"
+                                Style="{StaticResource QuestClaimButton}"
+                                VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                    </Grid>
+                </Border>
+
+                <!-- MISSION 2: in progress -->
+                <Border Style="{StaticResource QuestMissionRow}"
+                        Background="{StaticResource MistyBrush}"
+                        BorderBrush="{StaticResource QuestLine}" BorderThickness="1"
+                        Margin="0,0,0,7">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="34"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="104"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="30" Height="30"
+                                CornerRadius="15" Background="{StaticResource MistyBrush}">
+                            <Image Source="/Assets/Images/QuestBattery.png"
+                                   Width="20" Height="20" Stretch="Uniform"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,6,0">
+                            <TextBlock Text="Power saver selama 4 jam"
+                                       FontFamily="{StaticResource HeadingFont}"
+                                       FontWeight="SemiBold" FontSize="13"
+                                       Foreground="{StaticResource ForestGreenBrush}"/>
+                            <TextBlock Text="Sedang berjalan • 2/4 jam · Lanjutkan power saver 2 jam lagi."
+                                       FontSize="10" Foreground="{StaticResource QuestMuted}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                                    HorizontalAlignment="Right">
+                            <TextBlock Text="+20 Koin" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource QuestMuted}" HorizontalAlignment="Right"/>
+                            <TextBlock Text="Setelah selesai" FontSize="10"
+                                       Foreground="{StaticResource QuestMuted}" HorizontalAlignment="Right"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- MISSION 3 -->
+                <Border Style="{StaticResource QuestMissionRow}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="34"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="104"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="30" Height="30"
+                                CornerRadius="15" Background="{StaticResource MistyBrush}">
+                            <Image Source="/Assets/Images/QuestWeather.png"
+                                   Width="21" Height="21" Stretch="Uniform"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,6,0">
+                            <TextBlock Text="Terapkan 1 rekomendasi cuaca"
+                                       FontFamily="{StaticResource HeadingFont}"
+                                       FontWeight="SemiBold" FontSize="13"
+                                       Foreground="{StaticResource ForestGreenBrush}"/>
+                            <TextBlock Text="Selesai • siap diklaim · Kecerahan sudah diturunkan ke 40% saat berawan."
+                                       FontSize="10" Foreground="{StaticResource QuestMuted}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <Button Grid.Column="2" Content="Klaim +15"
+                                Style="{StaticResource QuestClaimButton}"
+                                VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
