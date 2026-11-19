@@ -131,7 +131,13 @@ namespace EcoKoin.WPF.Views
 
         private void OpenLogin_Click(object sender, RoutedEventArgs e)
         {
-            // Existing MainWindow implements a frontend login overlay.
+            // When opened from the new login page, close register and return to login.
+            if (Owner is LoginWindow)
+            {
+                Close();
+                return;
+            }
+            // Legacy path when registration was opened by the old MainWindow overlay.
             var dashboard = Owner as MainWindow
                             ?? Application.Current.Windows.OfType<MainWindow>().FirstOrDefault()
                             ?? new MainWindow();
