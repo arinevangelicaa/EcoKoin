@@ -7,7 +7,7 @@
         <Setter Property="Background"
                 Value="{StaticResource MistyBrush}"/>
         <Setter Property="CornerRadius" Value="24"/>
-        <Setter Property="Padding" Value="24"/>
+        <Setter Property="Padding" Value="28,20"/>
     </Style>
 
     <!-- Kartu statistik: EcoKoin, cuaca, kelembapan, daya -->
@@ -15,7 +15,7 @@
         <Setter Property="Background"
                 Value="{StaticResource MistyBrush}"/>
         <Setter Property="CornerRadius" Value="24"/>
-        <Setter Property="Padding" Value="16,20"/>
+        <Setter Property="Padding" Value="20,16"/>
     </Style>
 
     <!-- Kartu bagian dalam: rekomendasi, misi, grafik -->
@@ -23,7 +23,71 @@
         <Setter Property="Background"
                 Value="{StaticResource OceanCyanBrush}"/>
         <Setter Property="CornerRadius" Value="20"/>
-        <Setter Property="Padding" Value="16"/>
+        <Setter Property="Padding" Value="18,12"/>
+    </Style>
+
+
+    <!-- SIDEBAR MENU DEFAULT -->
+    <Style x:Key="SidebarMenuButtonStyle"
+       TargetType="Button">
+
+        <Setter Property="Height" Value="52"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="Padding" Value="16,14"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource MistyBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+
+                    <Border x:Name="ButtonBorder"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="20"
+                        Padding="{TemplateBinding Padding}">
+
+                        <ContentPresenter
+                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="Center"/>
+
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ButtonBorder"
+                                Property="Background"
+                                Value="#416555"/>
+                        </Trigger>
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="ButtonBorder"
+                                Property="Opacity"
+                                Value="0.8"/>
+                        </Trigger>
+
+                    </ControlTemplate.Triggers>
+
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+    </Style>
+
+    <!-- SIDEBAR MENU ACTIVE -->
+    <Style x:Key="SidebarMenuActiveStyle"
+       TargetType="Button"
+       BasedOn="{StaticResource SidebarMenuButtonStyle}">
+
+        <Setter Property="Background"
+            Value="{StaticResource MistyBrush}"/>
+
+        <Setter Property="Foreground"
+            Value="{StaticResource SunOrangeBrush}"/>
+
     </Style>
 
 </ResourceDictionary>
