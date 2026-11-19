@@ -1,0 +1,29 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Kartu utama: EcoPet, rekomendasi, analisis, quest -->
+    <Style x:Key="DashboardCardStyle" TargetType="Border">
+        <Setter Property="Background"
+                Value="{StaticResource MistyBrush}"/>
+        <Setter Property="CornerRadius" Value="24"/>
+        <Setter Property="Padding" Value="24"/>
+    </Style>
+
+    <!-- Kartu statistik: EcoKoin, cuaca, kelembapan, daya -->
+    <Style x:Key="StatCardStyle" TargetType="Border">
+        <Setter Property="Background"
+                Value="{StaticResource MistyBrush}"/>
+        <Setter Property="CornerRadius" Value="24"/>
+        <Setter Property="Padding" Value="16,20"/>
+    </Style>
+
+    <!-- Kartu bagian dalam: rekomendasi, misi, grafik -->
+    <Style x:Key="InnerCardStyle" TargetType="Border">
+        <Setter Property="Background"
+                Value="{StaticResource OceanCyanBrush}"/>
+        <Setter Property="CornerRadius" Value="20"/>
+        <Setter Property="Padding" Value="16"/>
+    </Style>
+
+</ResourceDictionary>
