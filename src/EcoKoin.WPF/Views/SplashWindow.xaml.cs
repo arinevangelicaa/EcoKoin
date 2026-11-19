@@ -45,10 +45,5 @@ namespace EcoKoin.WPF.Views
                 Close();
             }
         }
-
-        private void LoadingProgress_ValueChanged(object sender, RoutedPropertyChangedEventArgs<T> e)
-        {
-
-        }
     }
 }
