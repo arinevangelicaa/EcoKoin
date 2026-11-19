@@ -57,10 +57,7 @@ namespace EcoKoin.WPF
             }
             else
             {
-                LoginValidation.Text = "";
-                LoginPassword.Clear();
-                LoginOverlay.Visibility = Visibility.Visible;
-                LoginEmail.Focus();
+                ShowFullLogin();
             }
         }
 
