@@ -1,0 +1,240 @@
+﻿<Window x:Class="EcoKoin.WPF.Views.RegisterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="EcoKoin - Daftar Akun"
+        Width="1200" Height="720" MinWidth="920" MinHeight="620"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
+        Background="#F6F8F7" FontFamily="{StaticResource BodyFont}">
+    <Window.Resources>
+        <SolidColorBrush x:Key="AuthForest" Color="#2C4C3E"/>
+        <SolidColorBrush x:Key="AuthMuted" Color="#668177"/>
+        <SolidColorBrush x:Key="AuthOutline" Color="#D5E0DB"/>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource HeadingFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Foreground" Value="{StaticResource AuthForest}"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+        <Style x:Key="FieldTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AuthOutline}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource AuthForest}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Height" Value="44"/>
+        </Style>
+        <Style x:Key="FieldPasswordBox" TargetType="PasswordBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource AuthForest}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="EyeButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource AuthForest}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ToolTip" Value="Tampilkan kata sandi"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="#E9F2F1"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="#B4D4D1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SubmitButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#2C4C3E"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="{StaticResource HeadingFont}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame" Background="{TemplateBinding Background}" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="#416957"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="#1E352B"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="LinkButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="3,2"/>
+            <Setter Property="Foreground" Value="{StaticResource AuthForest}"/>
+            <Setter Property="FontFamily" Value="{StaticResource HeadingFont}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#D97746"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Native WPF title bar supplies working minimize / maximize / close controls. -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="39*" MinWidth="340"/>
+            <ColumnDefinition Width="61*" MinWidth="520"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- LEFT BRAND PANEL; the user's existing EcoKoin assets are reused. -->
+        <Border Grid.Column="0" Background="{StaticResource AuthForest}" ClipToBounds="True">
+            <Grid Margin="40,30,40,26">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                    <Image Source="/Assets/Images/logo.png" Width="49" Height="46" Stretch="Uniform" Margin="0,0,10,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="EcoKoin" Foreground="White" FontFamily="{StaticResource HeadingFont}" FontSize="24" FontWeight="SemiBold"/>
+                        <TextBlock Text="Small Steps, Big Impact" Foreground="#E9F2F1" FontSize="12"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                    <TextBlock Text="Kebiasaan baik&#x0a;dimulai di sini."
+                               FontFamily="{StaticResource HeadingFont}" FontSize="29" FontWeight="SemiBold"
+                               LineHeight="37" Foreground="White"/>
+                    <TextBlock Text="Buat akunmu, hemat energi PC, dan tumbuh bersama teman kecilmu."
+                               TextWrapping="Wrap" Margin="0,12,0,16" Foreground="#E9F2F1" FontSize="14" LineHeight="21"/>
+                    <Grid Height="218" MaxWidth="310" HorizontalAlignment="Stretch">
+                        <Ellipse Fill="#395C4E" Margin="0,8,0,8"/>
+                        <Image Source="/Assets/Images/happy.png" Width="204" Height="210"
+                               Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <TextBlock Text="Teman kecil untuk kebiasaan baikmu."
+                               HorizontalAlignment="Center" Margin="0,12,0,0" FontSize="13" Foreground="#E9F2F1"/>
+                </StackPanel>
+                <TextBlock Grid.Row="2" Text="☘  Hemat energi, mulai dari PC sendiri."
+                           FontSize="12" Foreground="#E9F2F1"/>
+            </Grid>
+        </Border>
+
+        <!-- RIGHT REGISTRATION FORM. -->
+        <Grid Grid.Column="1" Margin="36,12" ClipToBounds="True">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Width="440" MaxWidth="440">
+                <StackPanel>
+                    <TextBlock Text="MULAI LANGKAH PERTAMAMU" FontSize="11" Foreground="{StaticResource AuthMuted}"/>
+                    <TextBlock Text="Daftar akun" Margin="0,7,0,4"
+                               Foreground="{StaticResource AuthForest}" FontFamily="{StaticResource HeadingFont}"
+                               FontWeight="SemiBold" FontSize="30"/>
+                    <TextBlock Text="Kenalan dulu, lalu mulai hemat energi bersama."
+                               FontSize="14" Foreground="{StaticResource AuthMuted}" Margin="0,0,0,19"/>
+
+                    <TextBlock Text="Nama" Style="{StaticResource FieldLabel}"/>
+                    <Grid Margin="0,0,0,12">
+                        <TextBox x:Name="NameInput" Style="{StaticResource FieldTextBox}" MaxLength="80"/>
+                        <TextBlock x:Name="NameHint" Text="Nama kamu" Margin="15,0,0,0"
+                                   Foreground="{StaticResource AuthMuted}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                    </Grid>
+
+                    <TextBlock Text="Email" Style="{StaticResource FieldLabel}"/>
+                    <Grid Margin="0,0,0,12">
+                        <TextBox x:Name="EmailInput" Style="{StaticResource FieldTextBox}" MaxLength="120"/>
+                        <TextBlock x:Name="EmailHint" Text="nama@contoh.com" Margin="15,0,0,0"
+                                   Foreground="{StaticResource AuthMuted}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                    </Grid>
+
+                    <TextBlock Text="Kata sandi" Style="{StaticResource FieldLabel}"/>
+                    <Border Height="44" CornerRadius="12" Background="White" BorderBrush="{StaticResource AuthOutline}" BorderThickness="1" Margin="0,0,0,3">
+                        <Grid Margin="14,0,5,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="36"/>
+                            </Grid.ColumnDefinitions>
+                            <PasswordBox x:Name="PasswordInput" Grid.Column="0" Style="{StaticResource FieldPasswordBox}" PasswordChanged="PasswordInput_Changed"/>
+                            <TextBox x:Name="PasswordVisible" Grid.Column="0" Style="{StaticResource FieldTextBox}"
+                                     Background="Transparent" BorderThickness="0" Padding="0" Height="42" Visibility="Collapsed"
+                                     TextChanged="PasswordVisible_Changed"/>
+                            <TextBlock x:Name="PasswordHint" Grid.Column="0" Text="Buat kata sandi" VerticalAlignment="Center"
+                                       Foreground="{StaticResource AuthMuted}" IsHitTestVisible="False"/>
+                            <Button x:Name="TogglePassword" Grid.Column="1" Style="{StaticResource EyeButtonStyle}"
+                                    Click="TogglePassword_Click" ToolTip="Tampilkan kata sandi">
+                                <TextBlock x:Name="PasswordEyeIcon" FontFamily="Segoe MDL2 Assets" FontSize="18" Text="&#xE890;"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="Minimal 8 karakter, gunakan huruf dan angka." FontSize="11"
+                               Foreground="{StaticResource AuthMuted}" Margin="0,0,0,12"/>
+
+                    <TextBlock Text="Konfirmasi kata sandi" Style="{StaticResource FieldLabel}"/>
+                    <Border Height="44" CornerRadius="12" Background="White" BorderBrush="{StaticResource AuthOutline}" BorderThickness="1">
+                        <Grid Margin="14,0,5,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="36"/>
+                            </Grid.ColumnDefinitions>
+                            <PasswordBox x:Name="ConfirmInput" Grid.Column="0" Style="{StaticResource FieldPasswordBox}" PasswordChanged="ConfirmInput_Changed"/>
+                            <TextBox x:Name="ConfirmVisible" Grid.Column="0" Style="{StaticResource FieldTextBox}"
+                                     Background="Transparent" BorderThickness="0" Padding="0" Height="42" Visibility="Collapsed"
+                                     TextChanged="ConfirmVisible_Changed"/>
+                            <TextBlock x:Name="ConfirmHint" Grid.Column="0" Text="Ulangi kata sandi" VerticalAlignment="Center"
+                                       Foreground="{StaticResource AuthMuted}" IsHitTestVisible="False"/>
+                            <Button x:Name="ToggleConfirm" Grid.Column="1" Style="{StaticResource EyeButtonStyle}"
+                                    Click="ToggleConfirm_Click" ToolTip="Tampilkan konfirmasi">
+                                <TextBlock x:Name="ConfirmEyeIcon" FontFamily="Segoe MDL2 Assets" FontSize="18" Text="&#xE890;"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <TextBlock x:Name="ValidationMessage" TextWrapping="Wrap" MinHeight="18"
+                               FontSize="12" Foreground="#B54738" Margin="0,7,0,4"/>
+
+                    <Button x:Name="RegisterButton" Click="RegisterButton_Click" Style="{StaticResource SubmitButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Daftar" VerticalAlignment="Center"/>
+                            <TextBlock Text="➜" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                        <TextBlock Text="Sudah punya akun?" VerticalAlignment="Center" Foreground="{StaticResource AuthMuted}" FontSize="13"/>
+                        <Button Content="Masuk" Style="{StaticResource LinkButtonStyle}"
+                                Click="OpenLogin_Click" Margin="6,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

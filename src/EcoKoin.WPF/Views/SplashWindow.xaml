@@ -59,7 +59,7 @@
                  IsIndeterminate="False"
                  Foreground="{StaticResource ForestGreenBrush}"
                  Background="#D5E0DB"
-                 BorderThickness="0" ValueChanged="LoadingProgress_ValueChanged"/>
+                 BorderThickness="0"/>
 
             <TextBlock Text="Menyiapkan EcoKoin..."
                FontSize="14"

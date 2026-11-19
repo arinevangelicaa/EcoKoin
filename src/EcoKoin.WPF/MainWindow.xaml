@@ -370,6 +370,15 @@
                                 Background="#D97746" Foreground="White" BorderThickness="0" Cursor="Hand"
                                 Click="SubmitLogin_Click"/>
                     </Grid>
+                    <!-- Tombol menuju halaman Daftar Akun -->
+                    <Button Content="Belum punya akun? Daftar akun"
+                            Click="OpenRegistration_Click"
+                            Cursor="Hand"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Center"
+                            Foreground="#2C4C3E"
+                            Background="Transparent"
+                            BorderThickness="0"/>
                 </StackPanel>
             </Border>
         </Grid>
