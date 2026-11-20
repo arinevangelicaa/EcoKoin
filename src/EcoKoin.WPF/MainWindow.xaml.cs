@@ -72,7 +72,7 @@ namespace EcoKoin.WPF
             string email = LoginEmail.Text.Trim();
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(LoginPassword.Password))
             {
-                LoginValidation.Text = "Isi email dan password untuk demo login.";
+                LoginValidation.Text = "Isi email dan password";
                 return;
             }
             // Demo: NOT an authenticated login. Never save or log entered password.

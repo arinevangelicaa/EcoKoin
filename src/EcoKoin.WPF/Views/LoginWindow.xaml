@@ -213,7 +213,7 @@
                     <TextBlock x:Name="ValidationMessage" FontSize="12" Foreground="#B54738"
                                TextWrapping="Wrap" Margin="0,0,0,9" Visibility="Collapsed"/>
                     <Button Style="{StaticResource SubmitButtonStyle}" Click="LoginButton_Click"
-                            IsDefault="True" ToolTip="Masuk ke mode demo frontend (belum autentikasi backend)">
+                            IsDefault="True">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <TextBlock Text="Masuk" VerticalAlignment="Center"/>
                             <TextBlock Text="&#xE72A;" FontSize="18" FontFamily="Segoe MDL2 Assets"
@@ -227,9 +227,6 @@
                         <Button Content="Daftar akun" Style="{StaticResource LinkButtonStyle}"
                                 Click="OpenRegister_Click" Margin="5,0,0,0"/>
                     </StackPanel>
-                    <TextBlock Text="Mode demo frontend: kata sandi belum diverifikasi server."
-                               FontSize="11" Foreground="{StaticResource AuthMuted}"
-                               HorizontalAlignment="Center" Margin="0,18,0,0"/>
                 </StackPanel>
             </Grid>
         </Grid>
