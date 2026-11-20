@@ -17,23 +17,28 @@ namespace EcoKoin.WPF.Views
         private void SettingsView_Loaded(object sender, RoutedEventArgs e)
         {
             var saved = WelcomePreferencesStore.Load();
-            if (!saved.HasCompletedOnboarding) return;
             PowerProfileBox.SelectedIndex = saved.PowerSaverEnabled ? 1 : 0;
-            foreach (ComboBoxItem item in SleepTimeBox.Items)
-                if (string.Equals(item.Content?.ToString(), saved.SleepDelay, StringComparison.Ordinal))
-                {
-                    SleepTimeBox.SelectedItem = item;
-                    break;
-                }
+            SelectComboValue(SleepTimeBox, saved.SleepDelay);
+            SelectComboValue(WeatherLocationBox, saved.WeatherLocation, createIfMissing: true);
 
-            ComboBoxItem? selected = WeatherLocationBox.Items.OfType<ComboBoxItem>()
-                .FirstOrDefault(item => string.Equals(item.Content?.ToString(), saved.WeatherLocation, StringComparison.Ordinal));
-            if (selected == null)
+            WeatherToggle.IsChecked = saved.WeatherRecommendationsEnabled;
+            PetDesktopToggle.IsChecked = saved.PetDesktopEnabled;
+            PetReminderToggle.IsChecked = saved.PetReminderEnabled;
+            MissionReminderToggle.IsChecked = saved.MissionReminderEnabled;
+            ClaimReminderToggle.IsChecked = saved.ClaimReminderEnabled;
+            SaveStatusText.Text = "Ubah preferensi, lalu klik Simpan perubahan.";
+        }
+
+        private static void SelectComboValue(ComboBox combo, string value, bool createIfMissing = false)
+        {
+            var selected = combo.Items.OfType<ComboBoxItem>()
+                .FirstOrDefault(item => string.Equals(item.Content?.ToString(), value, StringComparison.Ordinal));
+            if (selected == null && createIfMissing)
             {
-                selected = new ComboBoxItem { Content = saved.WeatherLocation };
-                WeatherLocationBox.Items.Add(selected);
+                selected = new ComboBoxItem { Content = value };
+                combo.Items.Add(selected);
             }
-            WeatherLocationBox.SelectedItem = selected;
+            if (selected != null) combo.SelectedItem = selected;
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -42,29 +47,34 @@ namespace EcoKoin.WPF.Views
             saved.PowerSaverEnabled = PowerProfileBox.SelectedIndex == 1;
             saved.SleepDelay = (SleepTimeBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "5 menit";
             saved.WeatherLocation = (WeatherLocationBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Catur Tunggal";
+            saved.WeatherRecommendationsEnabled = WeatherToggle.IsChecked == true;
+            saved.PetDesktopEnabled = PetDesktopToggle.IsChecked == true;
+            saved.PetReminderEnabled = PetReminderToggle.IsChecked == true;
+            saved.MissionReminderEnabled = MissionReminderToggle.IsChecked == true;
+            saved.ClaimReminderEnabled = ClaimReminderToggle.IsChecked == true;
+
             try
             {
                 WelcomePreferencesStore.Save(saved);
-                SaveStatusText.Text = "Preferensi awal tersimpan di perangkat ini (demo frontend).";
+                SaveStatusText.Text = "Pilihan disimpan di perangkat ini. Fitur sistem dan notifikasi belum terhubung.";
             }
             catch (Exception)
             {
-                SaveStatusText.Text = "Tidak dapat menyimpan preferensi di perangkat ini.";
+                SaveStatusText.Text = "Gagal menyimpan. Periksa izin penyimpanan lalu coba lagi.";
             }
-            // Power, brightness, weather API, notifications remain frontend simulations.
         }
 
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
             PowerProfileBox.SelectedIndex = 1;
-            SleepTimeBox.SelectedIndex = 1;
-            WeatherLocationBox.SelectedIndex = 0;
+            SelectComboValue(SleepTimeBox, "5 menit");
+            SelectComboValue(WeatherLocationBox, "Catur Tunggal", createIfMissing: true);
             WeatherToggle.IsChecked = true;
             PetDesktopToggle.IsChecked = true;
             PetReminderToggle.IsChecked = true;
             MissionReminderToggle.IsChecked = true;
             ClaimReminderToggle.IsChecked = true;
-            SaveStatusText.Text = "Pilihan default dipulihkan. Klik Simpan perubahan untuk menyimpan.";
+            SaveStatusText.Text = "Default dipulihkan di form. Klik Simpan perubahan untuk menerapkan.";
         }
     }
 }

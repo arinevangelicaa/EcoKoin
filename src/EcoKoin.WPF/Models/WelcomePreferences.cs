@@ -4,13 +4,20 @@ using System.Text.Json;
 
 namespace EcoKoin.WPF.Models
 {
-    // Frontend-only, per-device preferences. No OS power setting is changed.
+    // Local UI preferences. This class does not change Windows power settings.
     public sealed class WelcomePreferences
     {
         public bool HasCompletedOnboarding { get; set; }
         public bool PowerSaverEnabled { get; set; } = true;
         public string SleepDelay { get; set; } = "5 menit";
         public string WeatherLocation { get; set; } = "Catur Tunggal";
+
+        // Keep these preferences across application restarts.
+        public bool WeatherRecommendationsEnabled { get; set; } = true;
+        public bool PetDesktopEnabled { get; set; } = true;
+        public bool PetReminderEnabled { get; set; } = true;
+        public bool MissionReminderEnabled { get; set; } = true;
+        public bool ClaimReminderEnabled { get; set; } = true;
     }
 
     public static class WelcomePreferencesStore
@@ -29,16 +36,16 @@ namespace EcoKoin.WPF.Models
             }
             catch (Exception)
             {
-                // Invalid or inaccessible local file: fall back to safe defaults.
+                // Invalid or inaccessible local data: use safe UI defaults.
             }
             return new WelcomePreferences();
         }
 
         public static void Save(WelcomePreferences preferences)
         {
-            var directory = Path.GetDirectoryName(FilePath)!;
+            string directory = Path.GetDirectoryName(FilePath)!;
             Directory.CreateDirectory(directory);
-            var temporaryPath = FilePath + ".tmp";
+            string temporaryPath = FilePath + ".tmp";
             File.WriteAllText(temporaryPath, JsonSerializer.Serialize(
                 preferences, new JsonSerializerOptions { WriteIndented = true }));
             File.Move(temporaryPath, FilePath, true);
