@@ -205,17 +205,37 @@
                     </Grid>
                     <TextBlock Grid.Row="1" Text="Dapatkan saran hemat energi sesuai cuaca di lokasimu."
                                Style="{StaticResource SetCaption}" VerticalAlignment="Center"/>
-                    <Grid Grid.Row="2">
+                    <Grid Grid.Row="2" Margin="0,4,0,4">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="164"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Lokasi cuaca" Style="{StaticResource SetHeading}" FontSize="12" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="WeatherLocationBox" Grid.Column="1" Style="{StaticResource SetCombo}" SelectedIndex="0">
-                            <ComboBoxItem Content="Catur Tunggal"/>
-                            <ComboBoxItem Content="Yogyakarta"/>
-                            <ComboBoxItem Content="Sleman"/>
-                        </ComboBox>
+                        <TextBlock Grid.Column="0"
+                                   Text="Lokasi cuaca"
+                                   Style="{StaticResource SetHeading}"
+                                   FontSize="12"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,0"/>
+                        <Grid Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0"
+                                  Width="14" Height="17"
+                                  Stretch="Uniform"
+                                  Fill="{StaticResource SetForest}"
+                                  VerticalAlignment="Center"
+                                  Data="M12,2 C8.13,2 5,5.13 5,9 C5,14.25 12,22 12,22 C12,22 19,14.25 19,9 C19,5.13 15.87,2 12,2 Z M12,12 A3,3 0 1 1 12,6 A3,3 0 1 1 12,12 Z"/>
+                            <TextBlock x:Name="WeatherLocationText"
+                                       Grid.Column="2"
+                                       Text="Menunggu lokasi perangkat"
+                                       Style="{StaticResource SetHeading}"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Grid>
                     </Grid>
                     <Border Grid.Row="3" Background="{StaticResource SetMint}" CornerRadius="14" Padding="12,6" Height="64" VerticalAlignment="Center">
                         <StackPanel VerticalAlignment="Center">

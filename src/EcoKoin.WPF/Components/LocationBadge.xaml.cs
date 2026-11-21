@@ -1,34 +1,31 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using EcoKoin.WPF.Models;
 
 namespace EcoKoin.WPF.Components
 {
-    public partial class LocationBadge : System.Windows.Controls.UserControl
+    public partial class LocationBadge : UserControl
     {
         public LocationBadge()
         {
             InitializeComponent();
-
-            Loaded += OnLoaded;
-            Unloaded += OnUnloaded;
+            Loaded += LocationBadge_Loaded;
         }
 
-        private void OnLoaded(object sender, RoutedEventArgs e)
+        private void LocationBadge_Loaded(
+            object sender,
+            RoutedEventArgs e)
         {
-            WelcomePreferencesStore.PreferencesChanged += RefreshLocation;
-            RefreshLocation();
+            LocationText.Text = "Menunggu lokasi perangkat";
         }
 
-        private void OnUnloaded(object sender, RoutedEventArgs e)
-        {
-            WelcomePreferencesStore.PreferencesChanged -= RefreshLocation;
-        }
-
-        private void RefreshLocation()
+        // Dipanggil nanti saat LocationService
+        // sudah mengirimkan hasil deteksi lokasi.
+        public void UpdateLocation(string? location)
         {
             LocationText.Text =
-                WelcomePreferencesStore.Load().WeatherLocation;
+                string.IsNullOrWhiteSpace(location)
+                    ? "Lokasi tidak tersedia"
+                    : location;
         }
     }
 }

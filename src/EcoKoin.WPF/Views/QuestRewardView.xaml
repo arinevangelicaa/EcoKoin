@@ -59,7 +59,7 @@
     <!-- Desktop compact; no ScrollViewer, no reward-redemption catalog. -->
     <Grid Margin="18,12,18,12">
         <Grid.RowDefinitions>
-            <RowDefinition Height="58"/>
+            <RowDefinition Height="62"/>
             <RowDefinition Height="162"/>
             <RowDefinition Height="12"/>
             <RowDefinition Height="Auto"/>
@@ -87,7 +87,7 @@
             <components:LocationBadge
             Grid.Column="1"
             VerticalAlignment="Center"
-            HorizontalAlignment="Right"/>       
+            HorizontalAlignment="Right"/>
         </Grid>
 
         <!-- BALANCE + ECOPET -->
@@ -165,7 +165,7 @@
                                     <TextBlock Text="{StaticResource IconLevel}"
                                                Style="{StaticResource EcoAccentIcon}"
                                                FontSize="12"
-                                               Margin="0,0,5,0"/>           
+                                               Margin="0,0,5,0"/>
 
                                     <TextBlock Text="Level 5"
                                                Foreground="{StaticResource SunOrangeBrush}"
