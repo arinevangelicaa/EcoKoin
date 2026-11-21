@@ -184,7 +184,7 @@
                                             FontSize="12"
                                             Margin="0,0,5,0"/>
 
-                                            <TextBlock Text="Level 5"
+                                            <TextBlock Text="{Binding LevelDisplay}"
                                            Foreground="{StaticResource Orange}"
                                            FontWeight="SemiBold"
                                            FontSize="10"
@@ -192,7 +192,7 @@
                                         </StackPanel>
                                         <TextBlock Grid.Column="1" Text="{Binding XpDisplay}" Foreground="{StaticResource Muted}" FontSize="10"/>
                                     </Grid>
-                                    <ProgressBar Value="70" Maximum="100" Height="9" Margin="0,3,0,0" Foreground="{StaticResource Orange}" Background="#C6D5D0" BorderThickness="0"/>
+                                    <ProgressBar Value="{Binding XpProgress}" Maximum="100" Height="9" Margin="0,3,0,0" Foreground="{StaticResource Orange}" Background="#C6D5D0" BorderThickness="0"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
@@ -207,8 +207,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Turunkan kecerahan ke 40%" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Cuaca berawan, layar tidak perlu terang maksimal" TextWrapping="Wrap" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,2,6,0"/>
+                                        <TextBlock Text="{Binding RekomendasiCuacaDisplay}" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding AlasanRekomendasiCuacaDisplay}" TextWrapping="Wrap" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,2,6,0"/>
                                     </StackPanel>
                                     <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
                                 </Grid>
@@ -220,8 +220,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Sleep setelah 5 menit idle" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Kamu sering meninggalkan PC" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,2,6,0"/>
+                                        <TextBlock Text="{Binding RekomendasiSleepDisplay}" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding AlasanRekomendasiSleepDisplay}" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,2,6,0"/>
                                     </StackPanel>
                                     <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
                                 </Grid>
@@ -267,21 +267,21 @@
                                 <StackPanel>
                                     <Grid>
                                         <TextBlock Text="Tren harian penghematan" FontSize="11" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="Ilustrasi" HorizontalAlignment="Right" FontSize="10" Foreground="{StaticResource Orange}"/>
+                                        <TextBlock Text="{Binding GrafikStatusDisplay}" HorizontalAlignment="Right" FontSize="10" Foreground="{StaticResource Orange}"/>
                                     </Grid>
                                     <Viewbox Height="52" Stretch="Fill" Margin="0,3,0,0">
                                         <Canvas Width="410" Height="85">
                                             <Line X1="0" X2="410" Y1="24" Y2="24" Stroke="#9DBFBA" StrokeThickness="1"/>
                                             <Line X1="0" X2="410" Y1="48" Y2="48" Stroke="#9DBFBA" StrokeThickness="1"/>
                                             <Line X1="0" X2="410" Y1="72" Y2="72" Stroke="#9DBFBA" StrokeThickness="1"/>
-                                            <Polyline Points="10,66 75,58 140,52 205,46 270,40 335,34 400,26" Stroke="{StaticResource Orange}" StrokeThickness="2" Fill="Transparent"/>
-                                            <Ellipse Canvas.Left="6" Canvas.Top="62" Width="8" Height="8" Fill="{StaticResource Orange}"/>
-                                            <Ellipse Canvas.Left="71" Canvas.Top="54" Width="8" Height="8" Fill="{StaticResource Orange}"/>
-                                            <Ellipse Canvas.Left="136" Canvas.Top="48" Width="8" Height="8" Fill="{StaticResource Orange}"/>
-                                            <Ellipse Canvas.Left="201" Canvas.Top="42" Width="8" Height="8" Fill="{StaticResource Orange}"/>
-                                            <Ellipse Canvas.Left="266" Canvas.Top="36" Width="8" Height="8" Fill="{StaticResource Orange}"/>
-                                            <Ellipse Canvas.Left="331" Canvas.Top="30" Width="8" Height="8" Fill="{StaticResource Orange}"/>
-                                            <Ellipse Canvas.Left="396" Canvas.Top="22" Width="10" Height="10" Fill="{StaticResource Forest}"/>
+                                            <Polyline Points="{Binding GrafikPoints}" Stroke="{StaticResource Orange}" StrokeThickness="2" Fill="Transparent"/>
+                                            <Ellipse Canvas.Left="6" Canvas.Top="{Binding GrafikDot0Top}" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="71" Canvas.Top="{Binding GrafikDot1Top}" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="136" Canvas.Top="{Binding GrafikDot2Top}" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="201" Canvas.Top="{Binding GrafikDot3Top}" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="266" Canvas.Top="{Binding GrafikDot4Top}" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="331" Canvas.Top="{Binding GrafikDot5Top}" Width="8" Height="8" Fill="{StaticResource Orange}"/>
+                                            <Ellipse Canvas.Left="396" Canvas.Top="{Binding GrafikDot6Top}" Width="10" Height="10" Fill="{StaticResource Forest}"/>
                                         </Canvas>
                                     </Viewbox>
                                     <UniformGrid Columns="7" Margin="0,0,0,0">
@@ -305,7 +305,7 @@
                                 <TextBlock Text="{Binding MisiSelesaiDisplay}" Foreground="{StaticResource Muted}" FontSize="10"/>
                                 <TextBlock Text="{Binding MisiPersenDisplay}" HorizontalAlignment="Right" Foreground="{StaticResource Orange}" FontSize="10"/>
                             </Grid>
-                            <ProgressBar Value="67" Maximum="100" Height="8" Margin="0,4,0,6" Foreground="{StaticResource Forest}" Background="#C5D4CF" BorderThickness="0"/>
+                            <ProgressBar Value="{Binding MisiProgress}" Maximum="100" Height="8" Margin="0,4,0,6" Foreground="{StaticResource Forest}" Background="#C5D4CF" BorderThickness="0"/>
                             <Border Background="{StaticResource Mint}" CornerRadius="18" Padding="8,6" Margin="0,0,0,5">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
