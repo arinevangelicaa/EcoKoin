@@ -172,5 +172,10 @@ namespace EcoKoin.WPF
                     yield return nested;
             }
         }
+
+        private void AppSidebar_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

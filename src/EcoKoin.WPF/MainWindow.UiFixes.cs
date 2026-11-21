@@ -9,78 +9,88 @@ namespace EcoKoin.WPF
 {
     public partial class MainWindow
     {
+        private bool _dashboardInteractionsInitialized;
+
         private void InitializeDashboardInteractions()
         {
-            var buttons = FindChildren<Button>(
-                DashboardContent).ToList();
-
-            int applyIndex = 0;
-
-            foreach (var button in buttons)
+            DashboardContent.Loaded += (_, _) =>
             {
-                string label =
-                    button.Content?.ToString() ?? "";
+                if (_dashboardInteractionsInitialized)
+                    return;
 
-                switch (label)
+                _dashboardInteractionsInitialized = true;
+
+                var buttons = FindChildren<Button>(DashboardContent).ToList();
+                int applyIndex = 0;
+
+                foreach (var button in buttons)
                 {
-                    case "Terapkan":
-                        if (applyIndex == 0)
-                            button.Click += ApplyBrightness_Click;
-                        else if (applyIndex == 1)
-                            button.Click += ApplySleep_Click;
+                    string label = button.Content?.ToString() ?? "";
 
-                        applyIndex++;
-                        break;
+                    switch (label)
+                    {
+                        case "Terapkan":
+                            if (applyIndex == 0)
+                                button.Click += ApplyBrightness_Click;
+                            else if (applyIndex == 1)
+                                button.Click += ApplySleep_Click;
+                            applyIndex++;
+                            break;
 
-                    case "Klaim +30":
-                        button.Click += DashboardClaimSleep_Click;
-                        break;
+                        case "Klaim +30":
+                            button.Click += DashboardClaimSleep_Click;
+                            break;
 
-                    case "Klaim +15":
-                        button.Click += DashboardClaimWeather_Click;
-                        break;
+                        case "Klaim +15":
+                            button.Click += DashboardClaimWeather_Click;
+                            break;
+                    }
+
+                    button.Cursor = Cursors.Hand;
                 }
 
-                button.Cursor = Cursors.Hand;
-            }
+                ConfigureDashboardDetailLink(AnalysisDetailLink, "Analisis");
+                ConfigureDashboardDetailLink(QuestDetailLink, "Misi & Reward");
+            };
+        }
 
-            int linkIndex = 0;
+        private void ConfigureDashboardDetailLink(TextBlock link, string section)
+        {
+            if (link == null)
+                return;
 
-            var links = FindChildren<TextBlock>(
-                DashboardContent)
-                .Where(t => t.Text.StartsWith(
-                    "Lihat Selengkapnya"))
-                .ToList();
+            Brush originalForeground = link.Foreground;
+            TextDecorationCollection originalDecorations = link.TextDecorations;
 
-            foreach (var link in links)
+            link.Cursor = Cursors.Hand;
+            link.Focusable = true;
+
+            link.MouseEnter += (_, _) =>
             {
-                int index = linkIndex++;
+                link.Foreground = Brushes.DarkOrange;
+                link.TextDecorations = TextDecorations.Underline;
+            };
 
-                link.Cursor = Cursors.Hand;
+            link.MouseLeave += (_, _) =>
+            {
+                link.Foreground = originalForeground;
+                link.TextDecorations = originalDecorations;
+            };
 
-                Brush original = link.Foreground;
+            link.MouseLeftButtonUp += (_, e) =>
+            {
+                ShowSection(section);
+                e.Handled = true;
+            };
 
-                link.MouseEnter += (_, _) =>
+            link.KeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Enter || e.Key == Key.Space)
                 {
-                    link.Foreground = Brushes.DarkOrange;
-                    link.TextDecorations =
-                        TextDecorations.Underline;
-                };
-
-                link.MouseLeave += (_, _) =>
-                {
-                    link.Foreground = original;
-                    link.TextDecorations = null;
-                };
-
-                link.MouseLeftButtonUp += (_, _) =>
-                {
-                    if (index == 0)
-                        ShowSection("Analisis");
-                    else
-                        ShowSection("Misi & Reward");
-                };
-            }
+                    ShowSection(section);
+                    e.Handled = true;
+                }
+            };
         }
     }
 }
