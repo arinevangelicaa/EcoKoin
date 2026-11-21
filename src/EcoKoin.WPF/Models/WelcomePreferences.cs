@@ -9,6 +9,7 @@ namespace EcoKoin.WPF.Models
     {
         public bool HasCompletedOnboarding { get; set; }
         public bool PowerSaverEnabled { get; set; } = true;
+        public string PowerProfile { get; set; } = "";
         public string SleepDelay { get; set; } = "5 menit";
         public string WeatherLocation { get; set; } = "Catur Tunggal";
 

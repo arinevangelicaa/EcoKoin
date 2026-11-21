@@ -34,7 +34,7 @@
     <!-- Layout compact desktop, 4 vertical sections. No ScrollViewer. -->
     <Grid Margin="18,12,18,12" ClipToBounds="True">
         <Grid.RowDefinitions>
-            <RowDefinition Height="58"/>
+            <RowDefinition Height="62"/>
             <RowDefinition Height="42"/>
             <RowDefinition Height="125"/>
             <RowDefinition Height="*"/>
@@ -61,20 +61,45 @@
 
         <!-- PERIOD -->
         <Grid Grid.Row="1" Margin="0,0,0,9">
-            <Border Background="{StaticResource MistyBrush}" HorizontalAlignment="Left" CornerRadius="11" Padding="13,7">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{StaticResource IconCalendar}" Style="{StaticResource EcoIcon}" FontSize="14" Foreground="{StaticResource AnalForest}"/>
-                    <TextBlock Text="Minggu ini" FontFamily="{StaticResource HeadingFont}" FontWeight="Medium" FontSize="12"
-                     Foreground="{StaticResource AnalForest}" Margin="9,0,7,0"/>
-                    <TextBlock Text="{StaticResource IconChevronDown}" Style="{StaticResource EcoIcon}" FontSize="10" Foreground="{StaticResource AnalForest}"/>
-                </StackPanel>
-            </Border>
-            <TextBlock Text="7 hari terakhir · Senin–Minggu" HorizontalAlignment="Right"
-                 VerticalAlignment="Center" Style="{StaticResource AnalSmall}"/>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <ComboBox x:Name="PeriodComboBox"
+              Grid.Column="0"
+              Width="155"
+              Height="34"
+              SelectedIndex="0"
+              SelectionChanged="PeriodComboBox_SelectionChanged"
+              Background="{StaticResource MistyBrush}"
+              Foreground="{StaticResource AnalForest}"
+              BorderBrush="#C4D5CF"
+              BorderThickness="1"
+              FontFamily="{StaticResource HeadingFont}"
+              FontSize="12"
+              Padding="8,3"
+              VerticalContentAlignment="Center"
+              Cursor="Hand">
+
+                <ComboBoxItem Content="Minggu ini"/>
+                <ComboBoxItem Content="Bulan ini"/>
+                <ComboBoxItem Content="Tahun ini"/>
+            </ComboBox>
+
+            <TextBlock x:Name="PeriodDescription"
+               Grid.Column="1"
+               Text="7 hari terakhir · Senin–Minggu"
+               HorizontalAlignment="Right"
+               VerticalAlignment="Center"
+               Style="{StaticResource AnalSmall}"/>
         </Grid>
 
         <!-- THREE KPI CARDS -->
-        <UniformGrid Grid.Row="2" Columns="3" Margin="0,0,0,12">
+        <UniformGrid x:Name="WeeklyKpiCards"
+             Grid.Row="2"
+             Columns="3"
+             Margin="0,0,0,12">
             <Border Style="{StaticResource AnalCard}" Margin="0,0,8,0">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -131,118 +156,145 @@
         </UniformGrid>
 
         <!-- TREND CHARTS -->
-        <Border Grid.Row="3" Style="{StaticResource AnalCard}" Padding="20,14,20,10" Margin="0,0,0,12">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="24"/>
-                    <RowDefinition Height="26"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <TextBlock Text="DAMPAK PENGHEMATAN MINGGUAN" Style="{StaticResource AnalSection}"/>
-                <TextBlock Grid.Row="1" Text="Estimasi dampak per hari, bukan akumulasi. Setiap grafik memakai skala dan satuan tersendiri."
+        <Grid Grid.Row="3" Margin="0,0,0,12">
+
+            <Border x:Name="UnavailablePeriodPanel"
+            Style="{StaticResource AnalCard}"
+            Visibility="Collapsed">
+
+                <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+
+                    <TextBlock Text="Data periode belum tersedia"
+                       Style="{StaticResource AnalHeading}"
+                       FontSize="18"
+                       TextAlignment="Center"/>
+
+                    <TextBlock x:Name="UnavailablePeriodDescription"
+                       Text="Data analisis periode ini belum tersedia."
+                       Style="{StaticResource AnalSmall}"
+                       FontSize="12"
+                       Margin="0,8,0,0"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="WeeklyTrendChart"
+            Style="{StaticResource AnalCard}"
+            Padding="20,14,20,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="24"/>
+                        <RowDefinition Height="26"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="DAMPAK PENGHEMATAN MINGGUAN" Style="{StaticResource AnalSection}"/>
+                    <TextBlock Grid.Row="1" Text="Estimasi dampak per hari, bukan akumulasi. Setiap grafik memakai skala dan satuan tersendiri."
                    Style="{StaticResource AnalSmall}" TextTrimming="CharacterEllipsis"/>
-                <Grid Grid.Row="2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid Grid.Column="0" Margin="0,0,12,0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="26"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Ellipse Width="7" Height="7" Fill="#2C4C3E" Margin="0,0,8,0"/>
-                                <TextBlock Text="CO2 dihindari" Style="{StaticResource AnalGraphTitle}"/>
-                            </StackPanel>
-                            <TextBlock Text="kg CO2 / hari" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource AnalSmall}"/>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0" Margin="0,0,12,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="26"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse Width="7" Height="7" Fill="#2C4C3E" Margin="0,0,8,0"/>
+                                    <TextBlock Text="CO2 dihindari" Style="{StaticResource AnalGraphTitle}"/>
+                                </StackPanel>
+                                <TextBlock Text="kg CO2 / hari" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource AnalSmall}"/>
+                            </Grid>
+                            <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <Canvas Width="480" Height="200">
+                                    <Line X1="48" Y1="154.000" X2="453" Y2="154.000" Stroke="#CFDBD8" StrokeThickness="1"/>
+                                    <TextBlock Canvas.Left="0" Canvas.Top="146.0" Width="38" Height="18" Text="0" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
+                                    <Line X1="48" Y1="108.667" X2="453" Y2="108.667" Stroke="#CFDBD8" StrokeThickness="1"/>
+                                    <TextBlock Canvas.Left="0" Canvas.Top="100.66666666666666" Width="38" Height="18" Text="0.10" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
+                                    <Line X1="48" Y1="63.333" X2="453" Y2="63.333" Stroke="#CFDBD8" StrokeThickness="1"/>
+                                    <TextBlock Canvas.Left="0" Canvas.Top="55.333333333333314" Width="38" Height="18" Text="0.20" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
+                                    <Line X1="48" Y1="18.000" X2="453" Y2="18.000" Stroke="#CFDBD8" StrokeThickness="1"/>
+                                    <TextBlock Canvas.Left="0" Canvas.Top="10.0" Width="38" Height="18" Text="0.30" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
+                                    <Polyline Points="48.00,108.67 115.50,86.00 183.00,99.60 250.50,72.40 318.00,63.33 385.50,63.33 453.00,40.67" Stroke="#2C4C3E" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent"/>
+                                    <Ellipse Canvas.Left="45.3" Canvas.Top="105.97" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
+                                    <TextBlock Canvas.Left="18" Canvas.Top="82.66666666666666" Width="60" Height="16" Text="0.10" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="14" Canvas.Top="171" Width="68" Height="18" Text="Senin" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="112.8" Canvas.Top="83.30" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
+                                    <TextBlock Canvas.Left="85.5" Canvas.Top="60.0" Width="60" Height="16" Text="0.15" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="81.5" Canvas.Top="171" Width="68" Height="18" Text="Selasa" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="180.3" Canvas.Top="96.90" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
+                                    <TextBlock Canvas.Left="153" Canvas.Top="73.6" Width="60" Height="16" Text="0.12" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="149" Canvas.Top="171" Width="68" Height="18" Text="Rabu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="247.8" Canvas.Top="69.70" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
+                                    <TextBlock Canvas.Left="220.5" Canvas.Top="46.39999999999999" Width="60" Height="16" Text="0.18" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="216.5" Canvas.Top="171" Width="68" Height="18" Text="Kamis" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="315.3" Canvas.Top="60.63" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
+                                    <TextBlock Canvas.Left="288" Canvas.Top="37.333333333333314" Width="60" Height="16" Text="0.20" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="284" Canvas.Top="171" Width="68" Height="18" Text="Jumat" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="382.8" Canvas.Top="60.63" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
+                                    <TextBlock Canvas.Left="355.5" Canvas.Top="37.333333333333314" Width="60" Height="16" Text="0.20" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="351.5" Canvas.Top="171" Width="68" Height="18" Text="Sabtu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="450.3" Canvas.Top="37.97" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
+                                    <TextBlock Canvas.Left="423" Canvas.Top="14.666666666666657" Width="60" Height="16" Text="0.25" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="419" Canvas.Top="171" Width="68" Height="18" Text="Minggu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                </Canvas>
+                            </Viewbox>
                         </Grid>
-                        <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                            <Canvas Width="480" Height="200">
-                                <Line X1="48" Y1="154.000" X2="453" Y2="154.000" Stroke="#CFDBD8" StrokeThickness="1"/>
-                                <TextBlock Canvas.Left="0" Canvas.Top="146.0" Width="38" Height="18" Text="0" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
-                                <Line X1="48" Y1="108.667" X2="453" Y2="108.667" Stroke="#CFDBD8" StrokeThickness="1"/>
-                                <TextBlock Canvas.Left="0" Canvas.Top="100.66666666666666" Width="38" Height="18" Text="0.10" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
-                                <Line X1="48" Y1="63.333" X2="453" Y2="63.333" Stroke="#CFDBD8" StrokeThickness="1"/>
-                                <TextBlock Canvas.Left="0" Canvas.Top="55.333333333333314" Width="38" Height="18" Text="0.20" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
-                                <Line X1="48" Y1="18.000" X2="453" Y2="18.000" Stroke="#CFDBD8" StrokeThickness="1"/>
-                                <TextBlock Canvas.Left="0" Canvas.Top="10.0" Width="38" Height="18" Text="0.30" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
-                                <Polyline Points="48.00,108.67 115.50,86.00 183.00,99.60 250.50,72.40 318.00,63.33 385.50,63.33 453.00,40.67" Stroke="#2C4C3E" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent"/>
-                                <Ellipse Canvas.Left="45.3" Canvas.Top="105.97" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
-                                <TextBlock Canvas.Left="18" Canvas.Top="82.66666666666666" Width="60" Height="16" Text="0.10" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="14" Canvas.Top="171" Width="68" Height="18" Text="Senin" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="112.8" Canvas.Top="83.30" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
-                                <TextBlock Canvas.Left="85.5" Canvas.Top="60.0" Width="60" Height="16" Text="0.15" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="81.5" Canvas.Top="171" Width="68" Height="18" Text="Selasa" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="180.3" Canvas.Top="96.90" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
-                                <TextBlock Canvas.Left="153" Canvas.Top="73.6" Width="60" Height="16" Text="0.12" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="149" Canvas.Top="171" Width="68" Height="18" Text="Rabu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="247.8" Canvas.Top="69.70" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
-                                <TextBlock Canvas.Left="220.5" Canvas.Top="46.39999999999999" Width="60" Height="16" Text="0.18" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="216.5" Canvas.Top="171" Width="68" Height="18" Text="Kamis" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="315.3" Canvas.Top="60.63" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
-                                <TextBlock Canvas.Left="288" Canvas.Top="37.333333333333314" Width="60" Height="16" Text="0.20" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="284" Canvas.Top="171" Width="68" Height="18" Text="Jumat" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="382.8" Canvas.Top="60.63" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
-                                <TextBlock Canvas.Left="355.5" Canvas.Top="37.333333333333314" Width="60" Height="16" Text="0.20" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="351.5" Canvas.Top="171" Width="68" Height="18" Text="Sabtu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="450.3" Canvas.Top="37.97" Width="5.4" Height="5.4" Fill="#2C4C3E"/>
-                                <TextBlock Canvas.Left="423" Canvas.Top="14.666666666666657" Width="60" Height="16" Text="0.25" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#2C4C3E" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="419" Canvas.Top="171" Width="68" Height="18" Text="Minggu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                            </Canvas>
-                        </Viewbox>
-                    </Grid>
-                    <Grid Grid.Column="1" Margin="12,0,0,0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="26"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Ellipse Width="7" Height="7" Fill="#D97746" Margin="0,0,8,0"/>
-                                <TextBlock Text="Biaya dihemat" Style="{StaticResource AnalGraphTitle}"/>
-                            </StackPanel>
-                            <TextBlock Text="Rupiah / hari" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource AnalSmall}"/>
+                        <Grid Grid.Column="1" Margin="12,0,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="26"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse Width="7" Height="7" Fill="#D97746" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Biaya dihemat" Style="{StaticResource AnalGraphTitle}"/>
+                                </StackPanel>
+                                <TextBlock Text="Rupiah / hari" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource AnalSmall}"/>
+                            </Grid>
+                            <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <Canvas Width="480" Height="200">
+                                    <Line X1="48" Y1="154.000" X2="453" Y2="154.000" Stroke="#CFDBD8" StrokeThickness="1"/>
+                                    <TextBlock Canvas.Left="0" Canvas.Top="146.0" Width="38" Height="18" Text="0" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
+                                    <Line X1="48" Y1="108.667" X2="453" Y2="108.667" Stroke="#CFDBD8" StrokeThickness="1"/>
+                                    <TextBlock Canvas.Left="0" Canvas.Top="100.66666666666666" Width="38" Height="18" Text="1.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
+                                    <Line X1="48" Y1="63.333" X2="453" Y2="63.333" Stroke="#CFDBD8" StrokeThickness="1"/>
+                                    <TextBlock Canvas.Left="0" Canvas.Top="55.33333333333333" Width="38" Height="18" Text="2.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
+                                    <Line X1="48" Y1="18.000" X2="453" Y2="18.000" Stroke="#CFDBD8" StrokeThickness="1"/>
+                                    <TextBlock Canvas.Left="0" Canvas.Top="10.0" Width="38" Height="18" Text="3.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
+                                    <Polyline Points="48.00,108.67 115.50,86.00 183.00,97.33 250.50,74.67 318.00,63.33 385.50,52.00 453.00,29.33" Stroke="#D97746" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent"/>
+                                    <Ellipse Canvas.Left="45.3" Canvas.Top="105.97" Width="5.4" Height="5.4" Fill="#D97746"/>
+                                    <TextBlock Canvas.Left="18" Canvas.Top="82.66666666666666" Width="60" Height="16" Text="1.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="14" Canvas.Top="171" Width="68" Height="18" Text="Senin" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="112.8" Canvas.Top="83.30" Width="5.4" Height="5.4" Fill="#D97746"/>
+                                    <TextBlock Canvas.Left="85.5" Canvas.Top="60.0" Width="60" Height="16" Text="1.500" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="81.5" Canvas.Top="171" Width="68" Height="18" Text="Selasa" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="180.3" Canvas.Top="94.63" Width="5.4" Height="5.4" Fill="#D97746"/>
+                                    <TextBlock Canvas.Left="153" Canvas.Top="71.33333333333334" Width="60" Height="16" Text="1.250" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="149" Canvas.Top="171" Width="68" Height="18" Text="Rabu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="247.8" Canvas.Top="71.97" Width="5.4" Height="5.4" Fill="#D97746"/>
+                                    <TextBlock Canvas.Left="220.5" Canvas.Top="48.66666666666667" Width="60" Height="16" Text="1.750" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="216.5" Canvas.Top="171" Width="68" Height="18" Text="Kamis" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="315.3" Canvas.Top="60.63" Width="5.4" Height="5.4" Fill="#D97746"/>
+                                    <TextBlock Canvas.Left="288" Canvas.Top="37.33333333333333" Width="60" Height="16" Text="2.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="284" Canvas.Top="171" Width="68" Height="18" Text="Jumat" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="382.8" Canvas.Top="49.30" Width="5.4" Height="5.4" Fill="#D97746"/>
+                                    <TextBlock Canvas.Left="355.5" Canvas.Top="26.0" Width="60" Height="16" Text="2.250" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="351.5" Canvas.Top="171" Width="68" Height="18" Text="Sabtu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                    <Ellipse Canvas.Left="450.3" Canvas.Top="26.63" Width="5.4" Height="5.4" Fill="#D97746"/>
+                                    <TextBlock Canvas.Left="423" Canvas.Top="3.3333333333333286" Width="60" Height="16" Text="2.750" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
+                                    <TextBlock Canvas.Left="419" Canvas.Top="171" Width="68" Height="18" Text="Minggu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
+                                </Canvas>
+                            </Viewbox>
                         </Grid>
-                        <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                            <Canvas Width="480" Height="200">
-                                <Line X1="48" Y1="154.000" X2="453" Y2="154.000" Stroke="#CFDBD8" StrokeThickness="1"/>
-                                <TextBlock Canvas.Left="0" Canvas.Top="146.0" Width="38" Height="18" Text="0" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
-                                <Line X1="48" Y1="108.667" X2="453" Y2="108.667" Stroke="#CFDBD8" StrokeThickness="1"/>
-                                <TextBlock Canvas.Left="0" Canvas.Top="100.66666666666666" Width="38" Height="18" Text="1.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
-                                <Line X1="48" Y1="63.333" X2="453" Y2="63.333" Stroke="#CFDBD8" StrokeThickness="1"/>
-                                <TextBlock Canvas.Left="0" Canvas.Top="55.33333333333333" Width="38" Height="18" Text="2.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
-                                <Line X1="48" Y1="18.000" X2="453" Y2="18.000" Stroke="#CFDBD8" StrokeThickness="1"/>
-                                <TextBlock Canvas.Left="0" Canvas.Top="10.0" Width="38" Height="18" Text="3.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Right"/>
-                                <Polyline Points="48.00,108.67 115.50,86.00 183.00,97.33 250.50,74.67 318.00,63.33 385.50,52.00 453.00,29.33" Stroke="#D97746" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent"/>
-                                <Ellipse Canvas.Left="45.3" Canvas.Top="105.97" Width="5.4" Height="5.4" Fill="#D97746"/>
-                                <TextBlock Canvas.Left="18" Canvas.Top="82.66666666666666" Width="60" Height="16" Text="1.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="14" Canvas.Top="171" Width="68" Height="18" Text="Senin" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="112.8" Canvas.Top="83.30" Width="5.4" Height="5.4" Fill="#D97746"/>
-                                <TextBlock Canvas.Left="85.5" Canvas.Top="60.0" Width="60" Height="16" Text="1.500" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="81.5" Canvas.Top="171" Width="68" Height="18" Text="Selasa" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="180.3" Canvas.Top="94.63" Width="5.4" Height="5.4" Fill="#D97746"/>
-                                <TextBlock Canvas.Left="153" Canvas.Top="71.33333333333334" Width="60" Height="16" Text="1.250" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="149" Canvas.Top="171" Width="68" Height="18" Text="Rabu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="247.8" Canvas.Top="71.97" Width="5.4" Height="5.4" Fill="#D97746"/>
-                                <TextBlock Canvas.Left="220.5" Canvas.Top="48.66666666666667" Width="60" Height="16" Text="1.750" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="216.5" Canvas.Top="171" Width="68" Height="18" Text="Kamis" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="315.3" Canvas.Top="60.63" Width="5.4" Height="5.4" Fill="#D97746"/>
-                                <TextBlock Canvas.Left="288" Canvas.Top="37.33333333333333" Width="60" Height="16" Text="2.000" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="284" Canvas.Top="171" Width="68" Height="18" Text="Jumat" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="382.8" Canvas.Top="49.30" Width="5.4" Height="5.4" Fill="#D97746"/>
-                                <TextBlock Canvas.Left="355.5" Canvas.Top="26.0" Width="60" Height="16" Text="2.250" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="351.5" Canvas.Top="171" Width="68" Height="18" Text="Sabtu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                                <Ellipse Canvas.Left="450.3" Canvas.Top="26.63" Width="5.4" Height="5.4" Fill="#D97746"/>
-                                <TextBlock Canvas.Left="423" Canvas.Top="3.3333333333333286" Width="60" Height="16" Text="2.750" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#D97746" TextAlignment="Center"/>
-                                <TextBlock Canvas.Left="419" Canvas.Top="171" Width="68" Height="18" Text="Minggu" FontFamily="{StaticResource BodyFont}" FontSize="12" Foreground="#678177" TextAlignment="Center"/>
-                            </Canvas>
-                        </Viewbox>
                     </Grid>
                 </Grid>
-            </Grid>
-        </Border>
+            </Border>
+        </Grid>
 
         <!-- SAVING SOURCES + INSIGHT -->
         <Grid Grid.Row="4">

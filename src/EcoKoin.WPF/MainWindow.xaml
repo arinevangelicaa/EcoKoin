@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:components="clr-namespace:EcoKoin.WPF.Components"
         xmlns:views="clr-namespace:EcoKoin.WPF.Views"
+        xmlns:viewModels="clr-namespace:EcoKoin.WPF.ViewModels"
         Title="EcoKoin - Dashboard"
         Width="1280"
         Height="720"
@@ -14,6 +15,8 @@
         Background="{StaticResource CanvasBrush}"
         FontFamily="Segoe UI">
     <Window.Resources>
+        <!-- Data demo Dashboard, siap diganti service BE -->
+        <viewModels:DashboardViewModel x:Key="DashboardMockData"/>
         <SolidColorBrush x:Key="Forest" Color="#2B4B3E"/>
         <SolidColorBrush x:Key="Muted" Color="#678177"/>
         <SolidColorBrush x:Key="Panel" Color="#E8F2F0"/>
@@ -84,11 +87,12 @@
         <components:Sidebar x:Name="AppSidebar" Grid.Column="0"/>
 
         <!-- DASHBOARD -->
-        <Grid x:Name="DashboardContent" Grid.Column="1" Margin="18,12,18,12">
+        <Grid x:Name="DashboardContent" Grid.Column="1" Margin="18,12,18,12"
+              DataContext="{StaticResource DashboardMockData}">
 
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="70"/>
+                    <RowDefinition Height="62"/>
                     <RowDefinition Height="110"/>
                     <RowDefinition Height="205"/>
                     <RowDefinition Height="*"/>
@@ -123,29 +127,29 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="0,0,8,0" Padding="12,10" >
                         <StackPanel>
                             <TextBlock Text="TOTAL ECOKOIN" Style="{StaticResource StatLabel}"/>
-                            <TextBlock Text="800 Koin" Style="{StaticResource StatValue}"/>
-                            <TextBlock Text="+120 Koin minggu ini" FontSize="11" Foreground="#2D3834"/>
+                            <TextBlock Text="{Binding TotalKoinDisplay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{Binding KoinMingguanDisplay}" FontSize="11" Foreground="#2D3834"/>
                         </StackPanel>
                     </Border>
                     <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="8,0,8,0" Padding="12,10">
                         <StackPanel>
                             <TextBlock Text="CUACA HARI INI" Style="{StaticResource StatLabel}"/>
-                            <TextBlock Text="31° C" Style="{StaticResource StatValue}"/>
-                            <TextBlock Text="Cerah Berawan" FontSize="11" Foreground="#2D3834"/>
+                            <TextBlock Text="{Binding SuhuDisplay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{Binding CuacaDisplay}" FontSize="11" Foreground="#2D3834"/>
                         </StackPanel>
                     </Border>
                     <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="8,0,8,0" Padding="12,10">
                         <StackPanel>
                             <TextBlock Text="KELEMBAPAN UDARA" Style="{StaticResource StatLabel}"/>
-                            <TextBlock Text="65%" Style="{StaticResource StatValue}"/>
-                            <TextBlock Text="Udara Lembap" FontSize="11" Foreground="#2D3834"/>
+                            <TextBlock Text="{Binding KelembapanDisplay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{Binding KondisiUdaraDisplay}" FontSize="11" Foreground="#2D3834"/>
                         </StackPanel>
                     </Border>
                     <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="8,0,0,0" Padding="12,10">
                         <StackPanel>
                             <TextBlock Text="STATUS DAYA" Style="{StaticResource StatLabel}"/>
-                            <TextBlock Text="75%" Style="{StaticResource StatValue}"/>
-                            <TextBlock Text="On Battery" FontSize="11" Foreground="#2D3834"/>
+                            <TextBlock Text="{Binding BateraiDisplay}" Style="{StaticResource StatValue}"/>
+                            <TextBlock Text="{Binding StatusDayaDisplay}" FontSize="11" Foreground="#2D3834"/>
                         </StackPanel>
                     </Border>
                 </UniformGrid>
@@ -186,7 +190,7 @@
                                            FontSize="10"
                                            VerticalAlignment="Center"/>
                                         </StackPanel>
-                                        <TextBlock Grid.Column="1" Text="350 / 500 XP" Foreground="{StaticResource Muted}" FontSize="10"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding XpDisplay}" Foreground="{StaticResource Muted}" FontSize="10"/>
                                     </Grid>
                                     <ProgressBar Value="70" Maximum="100" Height="9" Margin="0,3,0,0" Foreground="{StaticResource Orange}" Background="#C6D5D0" BorderThickness="0"/>
                                 </StackPanel>
@@ -243,19 +247,19 @@
                                 <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="7" Margin="0,0,5,0">
                                     <StackPanel>
                                         <TextBlock Text="Energi dihemat" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="2.5 kWh" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding EnergiDisplay}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Muted}"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="7" Margin="5,0,5,0">
                                     <StackPanel>
                                         <TextBlock Text="CO2 dihindari" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="1.2 kg" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding EmisiDisplay}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Muted}"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="7" Margin="5,0,0,0">
                                     <StackPanel>
                                         <TextBlock Text="Biaya dihemat" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="Rp12.500" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding BiayaDisplay}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Muted}"/>
                                     </StackPanel>
                                 </Border>
                             </UniformGrid>
@@ -298,8 +302,8 @@
                         <StackPanel>
                             <TextBlock Text="DAILY QUEST" Style="{StaticResource SectionTitle}" Margin="0,0,0,7"/>
                             <Grid>
-                                <TextBlock Text="2 dari 3 misi selesai" Foreground="{StaticResource Muted}" FontSize="10"/>
-                                <TextBlock Text="67%" HorizontalAlignment="Right" Foreground="{StaticResource Orange}" FontSize="10"/>
+                                <TextBlock Text="{Binding MisiSelesaiDisplay}" Foreground="{StaticResource Muted}" FontSize="10"/>
+                                <TextBlock Text="{Binding MisiPersenDisplay}" HorizontalAlignment="Right" Foreground="{StaticResource Orange}" FontSize="10"/>
                             </Grid>
                             <ProgressBar Value="67" Maximum="100" Height="8" Margin="0,4,0,6" Foreground="{StaticResource Forest}" Background="#C5D4CF" BorderThickness="0"/>
                             <Border Background="{StaticResource Mint}" CornerRadius="18" Padding="8,6" Margin="0,0,0,5">
