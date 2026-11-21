@@ -27,8 +27,11 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Border Width="48" Height="48" CornerRadius="24" Background="{StaticResource SunOrangeBrush}">
-                    <TextBlock x:Name="ProfileAvatarText" Text="&#xE77B;" FontFamily="Segoe MDL2 Assets"
-                               FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource MistyBrush}"/>
+                    <TextBlock x:Name="ProfileAvatarText"
+                       Text="{StaticResource IconUser}"
+                       Style="{StaticResource EcoIcon}"
+                       FontSize="24"
+                       Foreground="{StaticResource MistyBrush}"/>
                 </Border>
                 <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                     <TextBlock x:Name="ProfileNameText" Text="Hermione" FontFamily="{StaticResource HeadingFont}"
@@ -43,10 +46,24 @@
 
             <!-- Same reusable menu controls as before -->
             <StackPanel Grid.Row="2">
-                <components:SidebarMenuItem MenuText="Dashboard" IconGlyph="&#xE80F;" IsActive="True"/>
-                <components:SidebarMenuItem MenuText="Misi &amp; Reward" IconGlyph="&#xE7C8;"/>
-                <components:SidebarMenuItem MenuText="Analisis" IconGlyph="&#xE9D9;"/>
-                <components:SidebarMenuItem MenuText="Pengaturan" IconGlyph="&#xE713;"/>
+
+                <components:SidebarMenuItem
+                MenuText="Dashboard"
+                IconGlyph="{StaticResource IconHome}"
+                IsActive="True"/>
+
+                <components:SidebarMenuItem
+                MenuText="Misi &amp; Reward"
+                IconGlyph="{StaticResource IconQuest}"/>    
+
+                <components:SidebarMenuItem
+                MenuText="Analisis"
+                IconGlyph="{StaticResource IconAnalysis}"/>
+
+                <components:SidebarMenuItem
+                MenuText="Pengaturan"
+                IconGlyph="{StaticResource IconSettings}"/>
+
             </StackPanel>
 
             <!-- New bottom action: one button which changes between Logout and Login -->
@@ -68,8 +85,28 @@
                         </ControlTemplate>
                     </Button.Template>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock x:Name="AuthIconText" Text="&#xE8AC;" FontFamily="Segoe MDL2 Assets"
-                                   FontSize="16" Foreground="{StaticResource OceanCyanBrush}" Width="22"/>
+                        <Grid Width="22"
+                              Height="22"
+                              VerticalAlignment="Center">
+
+                            <!-- Ikon logout berbentuk pintu dan panah keluar -->
+                            <Viewbox Width="22" Height="22">
+                                <Path Stroke="{StaticResource OceanCyanBrush}"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Data="M9,3 L5,3 Q3,3 3,5
+                                            L3,19 Q3,21 5,21 L9,21
+                                            M16,17 L21,12 L16,7
+                                            M21,12 L9,12"/>
+                            </Viewbox>
+
+                            <!-- Dipertahankan untuk kompatibilitas dengan Sidebar.xaml.cs -->
+                            <TextBlock x:Name="AuthIconText"
+                                       Visibility="Collapsed"
+                                       Text="{StaticResource IconLogout}"/>
+                        </Grid>
                         <TextBlock x:Name="AuthLabelText" Text="Logout" FontFamily="{StaticResource BodyFont}"
                                    FontSize="13" FontWeight="SemiBold" Foreground="White" Margin="7,0,0,0"/>
                     </StackPanel>

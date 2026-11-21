@@ -49,6 +49,9 @@ namespace EcoKoin.WPF.Models
             File.WriteAllText(temporaryPath, JsonSerializer.Serialize(
                 preferences, new JsonSerializerOptions { WriteIndented = true }));
             File.Move(temporaryPath, FilePath, true);
+            PreferencesChanged?.Invoke();
         }
+
+        public static event Action? PreferencesChanged;
     }
 }

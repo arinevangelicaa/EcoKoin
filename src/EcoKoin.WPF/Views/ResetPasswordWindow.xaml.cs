@@ -56,7 +56,8 @@ namespace EcoKoin.WPF.Views
                 NewVisible.Visibility = Visibility.Collapsed;
             }
             _showNew = !_showNew;
-            NewEyeIcon.Text = _showNew ? "\uE7B3" : "\uE890";
+            NewEyeIcon.Text = (string)FindResource(
+                _showNew ? "IconEyeOff" : "IconEye");
             NewEye.ToolTip = _showNew ? "Sembunyikan kata sandi" : "Tampilkan kata sandi";
             _syncing = false;
             RefreshHints();
@@ -80,7 +81,8 @@ namespace EcoKoin.WPF.Views
                 ConfirmVisible.Visibility = Visibility.Collapsed;
             }
             _showConfirm = !_showConfirm;
-            ConfirmEyeIcon.Text = _showConfirm ? "\uE7B3" : "\uE890";
+            ConfirmEyeIcon.Text = (string)FindResource(
+                _showConfirm ? "IconEyeOff" : "IconEye");
             ConfirmEye.ToolTip = _showConfirm ? "Sembunyikan kata sandi" : "Tampilkan kata sandi";
             _syncing = false;
             RefreshHints();

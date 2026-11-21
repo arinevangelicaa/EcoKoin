@@ -8,6 +8,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <!-- Global colors -->
                 <ResourceDictionary Source="Resources/Colors.xaml"/>
+                <!-- Global icons -->
+                <ResourceDictionary Source="Resources/Icons.xaml"/>
                 <!-- Global typography -->
                 <ResourceDictionary Source="Resources/Typography.xaml"/>
                 <!-- Reusable component styles -->
