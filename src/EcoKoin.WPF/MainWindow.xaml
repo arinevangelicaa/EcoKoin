@@ -45,12 +45,38 @@
             <Setter Property="Padding" Value="15,8"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Cursor" Value="Hand"/>
+
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border x:Name="ButtonBorder"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="9"
+                        Padding="{TemplateBinding Padding}">
+                            <ContentPresenter
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
                         </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                Property="Background"
+                                Value="#C95F2E"/>
+                            </Trigger>
+
+                            <Trigger Property="Button.IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                Property="Background"
+                                Value="#A94722"/>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder"
+                                Property="Opacity"
+                                Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -84,7 +110,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- REUSABLE SIDEBAR -->
-        <components:Sidebar x:Name="AppSidebar" Grid.Column="0"/>
+        <components:Sidebar x:Name="AppSidebar" Grid.Column="0" Loaded="AppSidebar_Loaded"/>
 
         <!-- DASHBOARD -->
         <Grid x:Name="DashboardContent" Grid.Column="1" Margin="18,12,18,12"
@@ -295,7 +321,7 @@
                                     </UniformGrid>
                                 </StackPanel>
                             </Border>
-                            <TextBlock Text="Lihat Selengkapnya   ➜" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>
+                            <TextBlock x:Name="AnalysisDetailLink" Text="Lihat Selengkapnya   ➜" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="1" Background="{StaticResource Panel}" CornerRadius="24" Padding="14" Margin="12,0,0,0">
@@ -347,7 +373,7 @@
                                     <Button Grid.Column="1" Content="Klaim +15" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
-                            <TextBlock Text="Lihat Selengkapnya   ➜" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>
+                            <TextBlock x:Name="QuestDetailLink" Text="Lihat Selengkapnya   ➜" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>
                         </StackPanel>
                     </Border>
                 </Grid>
