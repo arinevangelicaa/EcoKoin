@@ -1,4 +1,5 @@
-﻿using EcoKoin.WPF.Views;
+﻿using System.Windows;
+using EcoKoin.WPF.Views;
 
 namespace EcoKoin.WPF
 {
@@ -6,8 +7,13 @@ namespace EcoKoin.WPF
     {
         public void ShowFullLogin()
         {
-            var login = new LoginWindow { Owner = this };
-            login.ShowDialog();
+            var login = new LoginWindow();
+
+            Application.Current.MainWindow = login;
+
+            login.Show();
+
+            Close();
         }
     }
 }

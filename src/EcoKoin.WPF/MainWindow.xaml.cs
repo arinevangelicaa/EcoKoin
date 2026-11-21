@@ -1,6 +1,6 @@
 ﻿using EcoKoin.WPF.Components;
+using EcoKoin.WPF.Models;
 using System;
-using System.Configuration;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -12,94 +12,164 @@ namespace EcoKoin.WPF
         public MainWindow()
         {
             InitializeComponent();
-            AppSidebar.AddHandler(ButtonBase.ClickEvent,
-                new RoutedEventHandler(OnSidebarMenuClick), true);
-            AppSidebar.AuthActionRequested += OnAuthActionRequested;
-            AppSidebar.SetLoggedIn(true); // Demo starts signed in as in the Figma mockup.
+            InitializeDashboardInteractions();
+
+            AppSidebar.AddHandler(
+                ButtonBase.ClickEvent,
+                new RoutedEventHandler(OnSidebarMenuClick),
+                true);
+
+            AppSidebar.AuthActionRequested +=
+                OnAuthActionRequested;
+
+            AppSidebar.SetLoggedIn(
+                AuthBridge.IsAuthenticated,
+                AuthBridge.CurrentUser?.Email);
+
+            Loaded += (_, _) =>
+            {
+                if (!AuthBridge.IsAuthenticated)
+                    ShowFullLogin();
+            };
         }
 
-        private void OnSidebarMenuClick(object sender, RoutedEventArgs e)
+        private void OnSidebarMenuClick(
+            object sender,
+            RoutedEventArgs e)
         {
+            if (!AuthBridge.IsAuthenticated)
+            {
+                ShowFullLogin();
+                return;
+            }
+
             if (e.OriginalSource is not DependencyObject target)
                 return;
 
             var menu = FindParent<SidebarMenuItem>(target);
-            if (menu == null) return;
 
-            bool dashboard = menu.MenuText == "Dashboard";
-            bool quest = menu.MenuText == "Misi & Reward";
-            bool analysis = menu.MenuText == "Analisis";
-            bool settings = menu.MenuText == "Pengaturan";
-            if (!dashboard && !quest && !analysis && !settings) return;
+            if (menu == null)
+                return;
 
-            DashboardContent.Visibility = dashboard ? Visibility.Visible : Visibility.Collapsed;
-            QuestRewardContent.Visibility = quest ? Visibility.Visible : Visibility.Collapsed;
-            AnalysisContent.Visibility = analysis ? Visibility.Visible : Visibility.Collapsed;
-            SettingsContent.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
+            string section = menu.MenuText;
 
-            Title = dashboard ? "EcoKoin - Dashboard"
-                  : quest ? "EcoKoin - Misi & Reward"
-                  : analysis ? "EcoKoin - Analisis"
-                  : "EcoKoin - Pengaturan";
+            if (section != "Dashboard" &&
+                section != "Misi & Reward" &&
+                section != "Analisis" &&
+                section != "Pengaturan")
+                return;
 
-            foreach (var item in FindChildren<SidebarMenuItem>(AppSidebar))
-                item.IsActive = item.MenuText == menu.MenuText;
-
+            ShowSection(section);
             e.Handled = true;
         }
 
-        private void OnAuthActionRequested(object? sender, EventArgs e)
+        private async void OnAuthActionRequested(
+            object? sender,
+            EventArgs e)
         {
-            if (AppSidebar.IsLoggedIn)
-            {
-                // Frontend-only logout; no backend session/cookie to revoke yet.
-                AppSidebar.SetLoggedIn(false);
-            }
-            else
+            if (!AuthBridge.IsAuthenticated)
             {
                 ShowFullLogin();
-            }
-        }
-
-        private void CancelLogin_Click(object sender, RoutedEventArgs e)
-        {
-            LoginPassword.Clear();
-            LoginOverlay.Visibility = Visibility.Collapsed;
-        }
-
-        private void SubmitLogin_Click(object sender, RoutedEventArgs e)
-        {
-            string email = LoginEmail.Text.Trim();
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(LoginPassword.Password))
-            {
-                LoginValidation.Text = "Isi email dan password";
                 return;
             }
-            // Demo: NOT an authenticated login. Never save or log entered password.
-            AppSidebar.SetLoggedIn(true, email);
-            LoginPassword.Clear();
-            LoginOverlay.Visibility = Visibility.Collapsed;
+
+            var answer = MessageBox.Show(
+                this,
+                "Apakah kamu yakin ingin logout?",
+                "Konfirmasi Logout",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question,
+                MessageBoxResult.No);
+
+            if (answer != MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                bool success =
+                    await AuthBridge.LogoutAsync();
+
+                if (success)
+                {
+                    ShowFullLogin();
+                }
+                else
+                {
+                    MessageBox.Show(
+                        this,
+                        "Logout gagal. Silakan coba lagi.",
+                        "EcoKoin",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    this,
+                    ex.Message,
+                    "Logout belum tersedia",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
-        private static T? FindParent<T>(DependencyObject source) where T : DependencyObject
+        private void CancelLogin_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            LoginPassword.Clear();
+            LoginOverlay.Visibility =
+                Visibility.Collapsed;
+        }
+
+        private void SubmitLogin_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            // Jalur overlay lama tidak digunakan.
+            LoginPassword.Clear();
+            LoginOverlay.Visibility =
+                Visibility.Collapsed;
+
+            ShowFullLogin();
+        }
+
+        private static T? FindParent<T>(
+            DependencyObject source)
+            where T : DependencyObject
         {
             DependencyObject? current = source;
+
             while (current != null)
             {
-                if (current is T match) return match;
-                current = VisualTreeHelper.GetParent(current);
+                if (current is T match)
+                    return match;
+
+                current =
+                    VisualTreeHelper.GetParent(current);
             }
+
             return null;
         }
 
-        private static System.Collections.Generic.IEnumerable<T> FindChildren<T>(DependencyObject parent)
+        private static System.Collections.Generic.IEnumerable<T>
+            FindChildren<T>(DependencyObject parent)
             where T : DependencyObject
         {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            for (int i = 0;
+                 i < VisualTreeHelper.GetChildrenCount(parent);
+                 i++)
             {
-                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
-                if (child is T found) yield return found;
-                foreach (var nested in FindChildren<T>(child)) yield return nested;
+                DependencyObject child =
+                    VisualTreeHelper.GetChild(parent, i);
+
+                if (child is T found)
+                    yield return found;
+
+                foreach (var nested in
+                         FindChildren<T>(child))
+                    yield return nested;
             }
         }
     }
