@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Net.Mail;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,116 +8,236 @@ namespace EcoKoin.WPF.Views
 {
     public partial class LoginWindow : Window
     {
-        // Frontend demo only: optional remembered email lasts for this app process.
-        private static string? _rememberedEmail;
         private bool _passwordShown;
         private bool _updatingPassword;
+        private bool _submitting;
 
         public LoginWindow()
         {
             InitializeComponent();
-            if (!string.IsNullOrEmpty(_rememberedEmail))
-            {
-                EmailInput.Text = _rememberedEmail;
-                RememberMe.IsChecked = true;
-            }
+
             UpdateHints();
-            Loaded += (_, _) => { if (string.IsNullOrEmpty(EmailInput.Text)) EmailInput.Focus(); else PasswordInput.Focus(); };
+
+            Loaded += (_, _) =>
+            {
+                EmailInput.Focus();
+            };
         }
 
         private void UpdateHints()
         {
-            EmailHint.Visibility = string.IsNullOrWhiteSpace(EmailInput.Text) ? Visibility.Visible : Visibility.Collapsed;
-            string password = _passwordShown ? PasswordVisible.Text : PasswordInput.Password;
-            PasswordHint.Visibility = string.IsNullOrEmpty(password) ? Visibility.Visible : Visibility.Collapsed;
-        }
-        private void EmailInput_TextChanged(object sender, TextChangedEventArgs e) => UpdateHints();
-        private void PasswordInput_PasswordChanged(object sender, RoutedEventArgs e) { if (!_updatingPassword) UpdateHints(); }
-        private void PasswordVisible_TextChanged(object sender, TextChangedEventArgs e) { if (!_updatingPassword) UpdateHints(); }
+            EmailHint.Visibility =
+                string.IsNullOrWhiteSpace(EmailInput.Text)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
 
-        private void TogglePassword_Click(object sender, RoutedEventArgs e)
+            string password = _passwordShown
+                ? PasswordVisible.Text
+                : PasswordInput.Password;
+
+            PasswordHint.Visibility =
+                string.IsNullOrEmpty(password)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+        }
+
+        private void EmailInput_TextChanged(
+            object sender,
+            TextChangedEventArgs e)
+        {
+            UpdateHints();
+        }
+
+        private void PasswordInput_PasswordChanged(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (!_updatingPassword)
+                UpdateHints();
+        }
+
+        private void PasswordVisible_TextChanged(
+            object sender,
+            TextChangedEventArgs e)
+        {
+            if (!_updatingPassword)
+                UpdateHints();
+        }
+
+        private void TogglePassword_Click(
+            object sender,
+            RoutedEventArgs e)
         {
             _updatingPassword = true;
+
             if (!_passwordShown)
             {
-                PasswordVisible.Text = PasswordInput.Password;
-                PasswordInput.Visibility = Visibility.Collapsed;
-                PasswordVisible.Visibility = Visibility.Visible;
+                PasswordVisible.Text =
+                    PasswordInput.Password;
+
+                PasswordInput.Visibility =
+                    Visibility.Collapsed;
+
+                PasswordVisible.Visibility =
+                    Visibility.Visible;
             }
             else
             {
-                PasswordInput.Password = PasswordVisible.Text;
-                PasswordVisible.Visibility = Visibility.Collapsed;
-                PasswordInput.Visibility = Visibility.Visible;
+                PasswordInput.Password =
+                    PasswordVisible.Text;
+
+                PasswordVisible.Visibility =
+                    Visibility.Collapsed;
+
+                PasswordInput.Visibility =
+                    Visibility.Visible;
+
                 PasswordVisible.Clear();
             }
+
             _passwordShown = !_passwordShown;
-            PasswordEyeIcon.Text = (string)FindResource(
-                _passwordShown ? "IconEyeOff" : "IconEye");
-            TogglePassword.ToolTip = _passwordShown ? "Sembunyikan kata sandi" : "Tampilkan kata sandi";
+
+            PasswordEyeIcon.Text =
+                (string)FindResource(
+                    _passwordShown
+                        ? "IconEyeOff"
+                        : "IconEye");
+
+            TogglePassword.ToolTip = _passwordShown
+                ? "Sembunyikan kata sandi"
+                : "Tampilkan kata sandi";
+
             _updatingPassword = false;
             UpdateHints();
-            if (_passwordShown) PasswordVisible.Focus(); else PasswordInput.Focus();
+
+            if (_passwordShown)
+                PasswordVisible.Focus();
+            else
+                PasswordInput.Focus();
         }
 
-        private void LoginButton_Click(object sender, RoutedEventArgs e)
+        private async void LoginButton_Click(
+            object sender,
+            RoutedEventArgs e)
         {
-            string email = EmailInput.Text.Trim();
-            string password = _passwordShown ? PasswordVisible.Text : PasswordInput.Password;
-            ValidationMessage.Visibility = Visibility.Visible;
+            if (_submitting)
+                return;
 
-            if (!MailAddress.TryCreate(email, out var parsed) ||
-                !string.Equals(parsed.Address, email, StringComparison.OrdinalIgnoreCase))
+            string email = EmailInput.Text.Trim();
+
+            string password = _passwordShown
+                ? PasswordVisible.Text
+                : PasswordInput.Password;
+
+            ValidationMessage.Visibility =
+                Visibility.Visible;
+
+            if (!MailAddress.TryCreate(
+                    email, out var parsed) ||
+                !string.Equals(
+                    parsed.Address,
+                    email,
+                    StringComparison.OrdinalIgnoreCase))
             {
-                ValidationMessage.Text = "Masukkan alamat email yang valid.";
+                ValidationMessage.Text =
+                    "Masukkan alamat email yang valid.";
+
                 EmailInput.Focus();
                 return;
             }
+
             if (string.IsNullOrWhiteSpace(password))
             {
-                ValidationMessage.Text = "Kata sandi wajib diisi.";
-                if (_passwordShown) PasswordVisible.Focus(); else PasswordInput.Focus();
+                ValidationMessage.Text =
+                    "Kata sandi wajib diisi.";
+
+                if (_passwordShown)
+                    PasswordVisible.Focus();
+                else
+                    PasswordInput.Focus();
+
                 return;
             }
 
-            _rememberedEmail = RememberMe.IsChecked == true ? email : null;
+            _submitting = true;
+            ValidationMessage.Text = "Sedang masuk...";
 
-            // First demo login: show onboarding once on this device before Dashboard.
-            // This remains a frontend demo; do not interpret it as server authentication.
-            if (!WelcomePreferencesStore.Load().HasCompletedOnboarding)
+            try
             {
-                var welcome = new WelcomeWindow { Owner = this };
-                if (welcome.ShowDialog() != true)
-                    return; // User closed onboarding: keep Login visible.
-            }
+                bool success = await AuthBridge.LoginAsync(
+                    email,
+                    password,
+                    RememberMe.IsChecked == true);
 
-            // Demo: this is NOT real authentication. Never store the password.
-            var dashboard = Owner as MainWindow ?? Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
-            if (dashboard == null)
-            {
-                dashboard = new MainWindow();
+                if (!success)
+                {
+                    ValidationMessage.Text =
+                        "Email atau kata sandi tidak sesuai.";
+                    return;
+                }
+
+                if (!WelcomePreferencesStore.Load()
+                        .HasCompletedOnboarding)
+                {
+                    var welcome = new WelcomeWindow
+                    {
+                        Owner = this
+                    };
+
+                    if (welcome.ShowDialog() != true)
+                    {
+                        ValidationMessage.Text =
+                            "Selesaikan pengaturan awal untuk melanjutkan.";
+                        return;
+                    }
+                }
+
+                var dashboard = new MainWindow();
+
                 Application.Current.MainWindow = dashboard;
+
+                dashboard.Show();
+
+                PasswordInput.Clear();
+                PasswordVisible.Clear();
+
+                Close();
             }
-            dashboard.AppSidebar.SetLoggedIn(true, email);
-            if (!dashboard.IsVisible) dashboard.Show();
-            dashboard.Activate();
-            PasswordInput.Clear();
-            PasswordVisible.Clear();
-            Close();
+            catch (Exception ex)
+            {
+                ValidationMessage.Text = ex.Message;
+            }
+            finally
+            {
+                _submitting = false;
+            }
         }
 
-        private void OpenRegister_Click(object sender, RoutedEventArgs e)
+        private void OpenRegister_Click(
+            object sender,
+            RoutedEventArgs e)
         {
-            // Keep login behind the registration dialog so 'Masuk' returns here.
-            var register = new RegisterWindow { Owner = this };
+            var register = new RegisterWindow
+            {
+                Owner = this
+            };
+
             register.ShowDialog();
             Activate();
         }
 
-        private void ForgotPassword_Click(object sender, RoutedEventArgs e)
+        private void ForgotPassword_Click(
+            object sender,
+            RoutedEventArgs e)
         {
-            var forgot = new ForgotPasswordWindow { Owner = this };
-            forgot.EmailInput.Text = EmailInput.Text.Trim();
+            var forgot = new ForgotPasswordWindow
+            {
+                Owner = this
+            };
+
+            forgot.EmailInput.Text =
+                EmailInput.Text.Trim();
+
             forgot.ShowDialog();
             Activate();
         }

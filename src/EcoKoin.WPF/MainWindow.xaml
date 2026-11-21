@@ -192,7 +192,7 @@
                                         </StackPanel>
                                         <TextBlock Grid.Column="1" Text="{Binding XpDisplay}" Foreground="{StaticResource Muted}" FontSize="10"/>
                                     </Grid>
-                                    <ProgressBar Value="{Binding XpProgress}" Maximum="100" Height="9" Margin="0,3,0,0" Foreground="{StaticResource Orange}" Background="#C6D5D0" BorderThickness="0"/>
+                                    <ProgressBar Value="{Binding XpProgress, Mode=OneWay}" Maximum="100" Height="9" Margin="0,3,0,0" Foreground="{StaticResource Orange}" Background="#C6D5D0" BorderThickness="0"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
@@ -305,7 +305,7 @@
                                 <TextBlock Text="{Binding MisiSelesaiDisplay}" Foreground="{StaticResource Muted}" FontSize="10"/>
                                 <TextBlock Text="{Binding MisiPersenDisplay}" HorizontalAlignment="Right" Foreground="{StaticResource Orange}" FontSize="10"/>
                             </Grid>
-                            <ProgressBar Value="{Binding MisiProgress}" Maximum="100" Height="8" Margin="0,4,0,6" Foreground="{StaticResource Forest}" Background="#C5D4CF" BorderThickness="0"/>
+                            <ProgressBar Value="{Binding MisiProgress, Mode=OneWay}" Maximum="100" Height="8" Margin="0,4,0,6" Foreground="{StaticResource Forest}" Background="#C5D4CF" BorderThickness="0"/>
                             <Border Background="{StaticResource Mint}" CornerRadius="18" Padding="8,6" Margin="0,0,0,5">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
