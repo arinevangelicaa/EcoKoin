@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EcoKoin.Core\EcoKoin.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Assets\Images\happy.png" />
     <None Remove="Assets\Images\logo.png" />
     <None Remove="Assets\Images\netral.png" />

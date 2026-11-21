@@ -1,10 +1,12 @@
 # EcoKoin Database — Bukti Pembuatan
 
-Database dibuat dari `Database/schema.sql`, hasil jadi file `Database/ecokoin.db` (SQLite).
+> `Database/ecokoin.db` di bawah dibuat dari skema **v1**. Skema saat ini (v2) ada di `src/EcoKoin.Core/Database/schema.sql` (+ `seed.sql`); lihat [04-database.md](04-database.md).
+
+Database dibuat dari skema v1 (`schema.sql`), hasil jadi file `Database/ecokoin.db` (SQLite).
 
 Cara buat ulang:
 ```bash
-sqlite3 Database/ecokoin.db < Database/schema.sql
+sqlite3 Database/ecokoin.db < src/EcoKoin.Core/Database/schema.sql
 ```
 
 ## Tabel yang terbentuk
