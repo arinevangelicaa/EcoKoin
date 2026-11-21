@@ -9,29 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EcoKoin.Core\EcoKoin.Core.csproj" />
+    <ProjectReference
+      Include="..\EcoKoin.Core\EcoKoin.Core.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Assets\Images\happy.png" />
-    <None Remove="Assets\Images\logo.png" />
-    <None Remove="Assets\Images\netral.png" />
-    <None Remove="Assets\Images\sad.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Assets\Images\happy.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Assets\Images\logo.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Assets\Images\netral.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Assets\Images\sad.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
+    <None Remove="Assets\Images\*.png"/>
+    <Resource Include="Assets\Images\*.png"/>
   </ItemGroup>
 
 </Project>

@@ -53,7 +53,8 @@ namespace EcoKoin.WPF.Views
                 PasswordVisible.Clear();
             }
             _passwordShown = !_passwordShown;
-            PasswordEyeIcon.Text = _passwordShown ? "\uE7B3" : "\uE890";
+            PasswordEyeIcon.Text = (string)FindResource(
+                _passwordShown ? "IconEyeOff" : "IconEye");
             TogglePassword.ToolTip = _passwordShown ? "Sembunyikan kata sandi" : "Tampilkan kata sandi";
             _updatingPassword = false;
             UpdateHints();

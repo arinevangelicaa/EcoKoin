@@ -19,10 +19,10 @@ namespace EcoKoin.WPF.Components
         {
             IsLoggedIn = loggedIn;
             AuthLabelText.Text = loggedIn ? "Logout" : "Login";
-            AuthIconText.Text = loggedIn ? "\uE8AC" : "\uE8AC";
             ProfileNameText.Text = loggedIn ? "Hermione" : "Belum login";
             ProfileEmailText.Text = loggedIn ? (email ?? "hermione@mail.hogwarts.ac.id") : "Masuk untuk menggunakan akun";
-            ProfileAvatarText.Text = loggedIn ? "\uE77B" : "\uE77B";
+            AuthIconText.Text = (string)FindResource("IconLogout");
+            ProfileAvatarText.Text = (string)FindResource("IconUser");
         }
 
         private void AuthActionButton_Click(object sender, RoutedEventArgs e)

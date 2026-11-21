@@ -1,0 +1,85 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Navigation -->
+    <sys:String x:Key="IconHome">&#xE80F;</sys:String>
+    <sys:String x:Key="IconQuest">&#xE7C8;</sys:String>
+    <sys:String x:Key="IconAnalysis">&#xE9D9;</sys:String>
+    <sys:String x:Key="IconSettings">&#xE713;</sys:String>
+
+    <!-- Account -->
+    <sys:String x:Key="IconUser">&#xE77B;</sys:String>
+    <sys:String x:Key="IconLogout">&#xE8FB;</sys:String>
+    <sys:String x:Key="IconLock">&#xE72E;</sys:String>
+    <sys:String x:Key="IconMail">&#xE715;</sys:String>
+    <sys:String x:Key="IconEye">&#xE890;</sys:String>
+    <sys:String x:Key="IconEyeOff">&#xE7B3;</sys:String>
+
+    <!-- Weather and location -->
+    <sys:String x:Key="IconLocation">&#xE707;</sys:String>
+    <sys:String x:Key="IconWeather">&#xE706;</sys:String>
+
+    <!-- Energy -->
+    <sys:String x:Key="IconPower">&#xE945;</sys:String>
+    <sys:String x:Key="IconBattery">&#xE850;</sys:String>
+    <sys:String x:Key="IconSleep">&#xE708;</sys:String>
+    <sys:String x:Key="IconBrightness">&#xE706;</sys:String>
+
+    <!-- Reward and progress -->
+    <sys:String x:Key="IconCoins">&#xE8C7;</sys:String>
+    <sys:String x:Key="IconCheck">&#xE73E;</sys:String>
+    <sys:String x:Key="IconClock">&#xE823;</sys:String>
+    <sys:String x:Key="IconCalendar">&#xE787;</sys:String>
+    <sys:String x:Key="IconLevel">&#xE735;</sys:String>
+
+    <!-- Supporting icons -->
+    <sys:String x:Key="IconNotification">&#xE7F4;</sys:String>
+    <sys:String x:Key="IconInfo">&#xE946;</sys:String>
+    <sys:String x:Key="IconArrowRight">&#xE72A;</sys:String>
+    <sys:String x:Key="IconChevronDown">&#xE70D;</sys:String>
+
+    <!-- Existing glyph aliases -->
+    <sys:String x:Key="IconReport">&#xE8BE;</sys:String>
+    <sys:String x:Key="IconEnergyReport">&#xE8D4;</sys:String>
+    <sys:String x:Key="IconPreference">&#xE753;</sys:String>
+    <sys:String x:Key="IconDevice">&#xE83E;</sys:String>
+    <sys:String x:Key="IconInsights">&#xE82F;</sys:String>
+    <sys:String x:Key="IconMoney">&#xE8D4;</sys:String>
+
+    <!-- Base icon style -->
+    <Style x:Key="EcoIcon" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="Foreground"
+                Value="{StaticResource ForestGreenBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="IsHitTestVisible" Value="False"/>
+    </Style>
+
+    <!-- Navigation icon -->
+    <Style x:Key="EcoNavIcon"
+           TargetType="TextBlock"
+           BasedOn="{StaticResource EcoIcon}">
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+
+    <!-- Card icon -->
+    <Style x:Key="EcoCardIcon"
+           TargetType="TextBlock"
+           BasedOn="{StaticResource EcoIcon}">
+        <Setter Property="FontSize" Value="18"/>
+    </Style>
+
+    <!-- Accent icon -->
+    <Style x:Key="EcoAccentIcon"
+           TargetType="TextBlock"
+           BasedOn="{StaticResource EcoCardIcon}">
+        <Setter Property="Foreground"
+                Value="{StaticResource SunOrangeBrush}"/>
+    </Style>
+
+</ResourceDictionary>

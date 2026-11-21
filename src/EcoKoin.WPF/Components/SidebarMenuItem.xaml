@@ -13,7 +13,7 @@
 
             <!-- Icon -->
             <TextBlock Text="{Binding IconGlyph, ElementName=Root}"
-                       FontFamily="Segoe MDL2 Assets"
+                       Style="{StaticResource EcoNavIcon}"
                        FontSize="16"
                        Width="20"
                        VerticalAlignment="Center"/>

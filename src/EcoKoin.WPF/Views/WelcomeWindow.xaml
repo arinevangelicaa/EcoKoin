@@ -183,7 +183,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Border Width="34" Height="34" CornerRadius="9" Background="#F6F8F7" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE83E;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource WelOrange}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Text="{StaticResource IconDevice}" Style="{StaticResource EcoIcon}" FontSize="17" Foreground="{StaticResource WelOrange}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
                                 <TextBlock Text="Mode hemat daya" FontSize="14" Style="{StaticResource WelTitle}"/>
@@ -202,7 +202,7 @@
                                 <ColumnDefinition Width="152"/>
                             </Grid.ColumnDefinitions>
                             <Border Width="34" Height="34" CornerRadius="9" Background="#F6F8F7" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource WelOrange}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Text="{StaticResource IconSleep}" Style="{StaticResource EcoIcon}" FontSize="17" Foreground="{StaticResource WelOrange}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
                                 <TextBlock Text="Sleep saat idle" FontSize="14" Style="{StaticResource WelTitle}"/>
@@ -227,7 +227,7 @@
                                 <ColumnDefinition Width="180"/>
                             </Grid.ColumnDefinitions>
                             <Border Width="34" Height="34" CornerRadius="9" Background="#F6F8F7" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE753;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource WelOrange}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Text="{StaticResource IconPreference}" Style="{StaticResource EcoIcon}" FontSize="17" Foreground="{StaticResource WelOrange}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
                                 <TextBlock Text="Lokasi cuaca" FontSize="14" Style="{StaticResource WelTitle}"/>
@@ -255,7 +255,7 @@
                 <!-- Note from design -->
                 <Border Grid.Row="1" Background="{StaticResource WelMisty}" CornerRadius="15" Padding="16,12" VerticalAlignment="Stretch">
                     <DockPanel VerticalAlignment="Center">
-                        <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource WelForest}" Margin="0,0,10,0"/>
+                        <TextBlock Text="{StaticResource IconInfo}" Style="{StaticResource EcoIcon}" FontSize="17" Foreground="{StaticResource WelForest}" Margin="0,0,10,0"/>
                         <TextBlock Text="Cuaca hanya memberi rekomendasi. Kecerahan layar tidak diubah otomatis tanpa persetujuanmu."
                                    TextWrapping="Wrap" Foreground="{StaticResource WelForest}" FontSize="12" VerticalAlignment="Center"/>
                     </DockPanel>
