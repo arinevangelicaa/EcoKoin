@@ -1,4 +1,4 @@
-<UserControl x:Class="EcoKoin.WPF.Views.AnalysisView"
+﻿<UserControl x:Class="EcoKoin.WPF.Views.AnalysisView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:components="clr-namespace:EcoKoin.WPF.Components"
@@ -86,14 +86,14 @@
                   VerticalContentAlignment="Center"
                   Cursor="Hand">
 
-                    <ComboBoxItem Content="Minggu ini"/>
+                    <ComboBoxItem Content="7 hari terakhir"/>
                     <ComboBoxItem Content="Bulan ini"/>
                     <ComboBoxItem Content="Tahun ini"/>
                 </ComboBox>
 
                 <TextBlock x:Name="PeriodDescription"
                    Grid.Column="1"
-                   Text="7 hari terakhir · Senin–Minggu"
+                   Text="7 hari terakhir"
                    HorizontalAlignment="Right"
                    VerticalAlignment="Center"
                    Style="{StaticResource AnalSmall}"/>
@@ -114,8 +114,8 @@
                         </Grid.RowDefinitions>
                         <TextBlock Text="Energi dihemat" Grid.Row="0" Style="{StaticResource AnalSmall}" FontSize="12"/>
                         <TextBlock Text="{StaticResource IconPower}" Grid.Row="0" Style="{StaticResource EcoIcon}" FontSize="18" HorizontalAlignment="Right" Foreground="{StaticResource AnalOrange}"/>
-                        <TextBlock Text="{Binding EnergySavedKwh, StringFormat={}{0:N2} kWh}" Grid.Row="1" VerticalAlignment="Center" Style="{StaticResource AnalHeading}" FontSize="25"/>
-                        <TextBlock Text="Akumulasi energi minggu ini" Grid.Row="2" Style="{StaticResource AnalSmall}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding EnergySavedKwh, StringFormat={}{0:N2} kWh, ConverterCulture=id-ID}" Grid.Row="1" VerticalAlignment="Center" Style="{StaticResource AnalHeading}" FontSize="25"/>
+                        <TextBlock Text="{Binding PeriodDescription, StringFormat='Akumulasi energi · {0}'}" Grid.Row="2" Style="{StaticResource AnalSmall}" TextTrimming="CharacterEllipsis"/>
                     </Grid>
                 </Border>
                 <Border Style="{StaticResource AnalCard}" Margin="8,0,8,0">
@@ -127,7 +127,7 @@
                         </Grid.RowDefinitions>
                         <TextBlock Text="CO2 dihindari" Grid.Row="0" Style="{StaticResource AnalSmall}" FontSize="12"/>
                         <TextBlock Text="{StaticResource IconReport}" Grid.Row="0" Style="{StaticResource EcoIcon}" FontSize="18" HorizontalAlignment="Right" Foreground="{StaticResource AnalOrange}"/>
-                        <TextBlock Text="{Binding Co2SavedKg, StringFormat={}{0:N2} kg}" Grid.Row="1" VerticalAlignment="Center" Style="{StaticResource AnalHeading}" FontSize="25"/>
+                        <TextBlock Text="{Binding Co2SavedKg, StringFormat={}{0:N2} kg, ConverterCulture=id-ID}" Grid.Row="1" VerticalAlignment="Center" Style="{StaticResource AnalHeading}" FontSize="25"/>
                         <TextBlock Text="Estimasi penurunan emisi" Grid.Row="2" Style="{StaticResource AnalSmall}" TextTrimming="CharacterEllipsis"/>
                     </Grid>
                 </Border>
@@ -198,8 +198,8 @@
                             <RowDefinition Height="26"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="DAMPAK PENGHEMATAN MINGGUAN" Style="{StaticResource AnalSection}"/>
-                        <TextBlock Grid.Row="1" Text="Estimasi dampak per hari, bukan akumulasi. Setiap grafik memakai skala dan satuan tersendiri."
+                        <TextBlock Text="DAMPAK PENGHEMATAN" Style="{StaticResource AnalSection}"/>
+                        <TextBlock Grid.Row="1" Text="{Binding TrendNote}"
                        Style="{StaticResource AnalSmall}" TextTrimming="CharacterEllipsis"/>
                         <Grid Grid.Row="2">
                             <Grid.ColumnDefinitions>
@@ -216,7 +216,7 @@
                                         <Ellipse Width="7" Height="7" Fill="#2C4C3E" Margin="0,0,8,0"/>
                                         <TextBlock Text="CO2 dihindari" Style="{StaticResource AnalGraphTitle}"/>
                                     </StackPanel>
-                                    <TextBlock Text="kg CO2 / hari" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource AnalSmall}"/>
+                                    <TextBlock Text="{Binding Co2UnitLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource AnalSmall}"/>
                                 </Grid>
                                 <Viewbox Grid.Row="1" MaxHeight="132" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                     <Canvas x:Name="Co2ChartCanvas" Width="480" Height="200"/>
@@ -232,7 +232,7 @@
                                         <Ellipse Width="7" Height="7" Fill="#D97746" Margin="0,0,8,0"/>
                                         <TextBlock Text="Biaya dihemat" Style="{StaticResource AnalGraphTitle}"/>
                                     </StackPanel>
-                                    <TextBlock Text="Rupiah / hari" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource AnalSmall}"/>
+                                    <TextBlock Text="{Binding MoneyUnitLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource AnalSmall}"/>
                                 </Grid>
                                 <Viewbox Grid.Row="1" MaxHeight="132" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                     <Canvas x:Name="MoneyChartCanvas" Width="480" Height="200"/>
@@ -274,9 +274,9 @@
                                 </Border>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="9,0,0,0">
                                     <TextBlock Text="Mode hemat daya" Foreground="{StaticResource AnalForest}" FontSize="12" FontFamily="{StaticResource BodyFont}"/>
-                                    <TextBlock Text="Durasi yang tercatat saat EcoKoin berjalan." Style="{StaticResource AnalSmall}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Mengurangi penggunaan energi saat bekerja." Style="{StaticResource AnalSmall}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <TextBlock Grid.Column="2" Text="{Binding PowerSaverDurationDisplay}" VerticalAlignment="Center" Margin="8,0,0,0" Style="{StaticResource AnalHeading}" FontSize="13"/>
+                                <TextBlock Grid.Column="2" Text="{Binding PowerSaverSourceDisplay}" VerticalAlignment="Center" Margin="8,0,0,0" Style="{StaticResource AnalHeading}" FontSize="13"/>
                             </Grid>
                             <!-- Sleep -->
                             <Grid Grid.Row="1">
@@ -292,7 +292,7 @@
                                     <TextBlock Text="Sleep saat ditinggal" Foreground="{StaticResource AnalForest}" FontSize="12" FontFamily="{StaticResource BodyFont}"/>
                                     <TextBlock Text="Mengurangi energi terbuang saat PC tidak digunakan." Style="{StaticResource AnalSmall}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <TextBlock Grid.Column="2" Text="—" VerticalAlignment="Center" Margin="8,0,0,0" Style="{StaticResource AnalHeading}" FontSize="13"/>
+                                <TextBlock Grid.Column="2" Text="{Binding SleepSourceDisplay}" VerticalAlignment="Center" Margin="8,0,0,0" Style="{StaticResource AnalHeading}" FontSize="13"/>
                             </Grid>
                             <!-- Weather-adaptive -->
                             <Grid Grid.Row="2">
@@ -317,10 +317,10 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                             <TextBlock Text="{StaticResource IconInsights}" Style="{StaticResource EcoIcon}" FontSize="16" Foreground="{StaticResource AnalOrange}" Margin="0,0,8,0"/>
-                            <TextBlock Text="WAWASAN MINGGU INI" Style="{StaticResource AnalSection}"/>
+                            <TextBlock Text="WAWASAN" Style="{StaticResource AnalSection}"/>
                         </StackPanel>
-                        <TextBlock Text="Langkah kecil, dampak terkumpul." Style="{StaticResource AnalHeading}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                        <TextBlock Text="{Binding InsightMessage}"
+                        <TextBlock Text="{Binding InsightTitle}" Style="{StaticResource AnalHeading}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding InsightText}"
                          Style="{StaticResource AnalSmall}" TextWrapping="Wrap" FontSize="11"/>
                     </StackPanel>
                 </Border>

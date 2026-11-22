@@ -1,6 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace EcoKoin.WPF.ViewModels
@@ -23,9 +25,13 @@ namespace EcoKoin.WPF.ViewModels
 
         private string _periodDescription = "";
         private string _emptyMessage = "Data analisis belum tersedia.";
-        private long _powerSaverDurationMinutes;
-        private string _powerSaverDurationDisplay = "—";
-        private string _insightMessage = "Wawasan personal akan ditampilkan setelah data penghematan tersedia.";
+        private string _bucketUnit = "hari";
+        private string _powerSaverSourceDisplay = "—";
+        private string _sleepSourceDisplay = "—";
+        private string _insightTitle = "Belum ada wawasan";
+        private string _insightText = "Wawasan personal akan ditampilkan setelah data penghematan tersedia.";
+
+        private static readonly CultureInfo IndonesianCulture = CultureInfo.GetCultureInfo("id-ID");
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -89,73 +95,65 @@ namespace EcoKoin.WPF.ViewModels
             }
         }
 
-        public long PowerSaverDurationMinutes
-        {
-            get => _powerSaverDurationMinutes;
-            private set
-            {
-                _powerSaverDurationMinutes = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string PowerSaverDurationDisplay
-        {
-            get => _powerSaverDurationDisplay;
-            private set
-            {
-                _powerSaverDurationDisplay = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string InsightMessage
-        {
-            get => _insightMessage;
-            private set
-            {
-                _insightMessage = value;
-                OnPropertyChanged();
-            }
-        }
-
         public bool HasData => ChartData.Count > 0;
 
-        public void SetPowerSaverDuration(long minutes)
+        // "hari" for daily charts, "bulan" for the yearly (monthly) chart.
+        public string BucketUnit
         {
-            PowerSaverDurationMinutes = Math.Max(0, minutes);
-            PowerSaverDurationDisplay = FormatDuration(PowerSaverDurationMinutes);
-            if (PowerSaverDurationMinutes > 0)
+            get => _bucketUnit;
+            private set
             {
-                InsightMessage = $"Bagus! Kamu telah menghemat daya selama {PowerSaverDurationDisplay} pada periode ini.";
-            }
-            else
-            {
-                InsightMessage = "Belum ada aktivitas hemat daya pada periode ini. Aktifkan Mode hemat daya atau Energy Saver di Windows untuk mulai menghemat.";
+                _bucketUnit = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(Co2UnitLabel));
+                OnPropertyChanged(nameof(MoneyUnitLabel));
+                OnPropertyChanged(nameof(TrendNote));
             }
         }
 
-        public void ClearPowerSaverDuration()
+        public string Co2UnitLabel => $"kg CO2 / {BucketUnit}";
+        public string MoneyUnitLabel => $"Rupiah / {BucketUnit}";
+        public string TrendNote =>
+            $"Estimasi dampak per {BucketUnit}, bukan akumulasi. Setiap grafik memakai skala dan satuan tersendiri.";
+
+        public string PowerSaverSourceDisplay
         {
-            PowerSaverDurationMinutes = 0;
-            PowerSaverDurationDisplay = "—";
-            InsightMessage = "Wawasan personal akan ditampilkan setelah data penghematan tersedia.";
+            get => _powerSaverSourceDisplay;
+            private set
+            {
+                _powerSaverSourceDisplay = value;
+                OnPropertyChanged();
+            }
         }
 
-        public static string FormatDuration(long totalMinutes)
+        public string SleepSourceDisplay
         {
-            if (totalMinutes <= 0)
-                return "0 menit";
+            get => _sleepSourceDisplay;
+            private set
+            {
+                _sleepSourceDisplay = value;
+                OnPropertyChanged();
+            }
+        }
 
-            long hours = totalMinutes / 60;
-            long mins = totalMinutes % 60;
+        public string InsightTitle
+        {
+            get => _insightTitle;
+            private set
+            {
+                _insightTitle = value;
+                OnPropertyChanged();
+            }
+        }
 
-            if (hours == 0)
-                return $"{mins} menit";
-            if (mins == 0)
-                return $"{hours} jam";
-
-            return $"{hours} jam {mins} menit";
+        public string InsightText
+        {
+            get => _insightText;
+            private set
+            {
+                _insightText = value;
+                OnPropertyChanged();
+            }
         }
 
         public void SetData(
@@ -163,7 +161,10 @@ namespace EcoKoin.WPF.ViewModels
             double energySavedKwh,
             double co2SavedKg,
             double moneySavedRp,
-            string periodDescription)
+            string periodDescription,
+            string bucketUnit = "hari",
+            double powerSaverKwh = 0,
+            double sleepKwh = 0)
         {
             ChartData = new List<AnalysisDataPoint>(
                 points ?? Array.Empty<AnalysisDataPoint>());
@@ -172,6 +173,23 @@ namespace EcoKoin.WPF.ViewModels
             Co2SavedKg = co2SavedKg;
             MoneySavedRp = moneySavedRp;
             PeriodDescription = periodDescription;
+            BucketUnit = bucketUnit;
+            PowerSaverSourceDisplay = FormatKwh(powerSaverKwh);
+            SleepSourceDisplay = FormatKwh(sleepKwh);
+
+            var best = ChartData.OrderByDescending(p => p.Co2SavedKg).FirstOrDefault();
+            if (best != null && best.Co2SavedKg > 0)
+            {
+                string when = int.TryParse(best.Label, out _) ? $"Tanggal {best.Label}" : best.Label;
+                InsightTitle = $"Terbaik: {when}";
+                InsightText = $"Penghematan tertinggi per {bucketUnit} ({periodDescription.ToLowerInvariant()}): " +
+                    $"{best.Co2SavedKg.ToString("N2", IndonesianCulture)} kg CO2 atau " +
+                    $"Rp{best.MoneySavedRp.ToString("N0", IndonesianCulture)}.";
+            }
+            else
+            {
+                ResetInsight();
+            }
 
             OnPropertyChanged(nameof(HasData));
         }
@@ -183,11 +201,23 @@ namespace EcoKoin.WPF.ViewModels
             EnergySavedKwh = 0;
             Co2SavedKg = 0;
             MoneySavedRp = 0;
+            PowerSaverSourceDisplay = "—";
+            SleepSourceDisplay = "—";
+            ResetInsight();
 
             EmptyMessage = message;
 
             OnPropertyChanged(nameof(HasData));
         }
+
+        private void ResetInsight()
+        {
+            InsightTitle = "Belum ada wawasan";
+            InsightText = "Wawasan personal akan ditampilkan setelah data penghematan tersedia.";
+        }
+
+        private static string FormatKwh(double kwh) =>
+            kwh.ToString("0.##", IndonesianCulture) + " kWh";
 
         private void OnPropertyChanged(
             [CallerMemberName] string? propertyName = null)
