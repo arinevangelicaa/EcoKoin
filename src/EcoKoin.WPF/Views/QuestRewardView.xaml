@@ -120,19 +120,15 @@
                            FontSize="19"
                            HorizontalAlignment="Right"/>
                     </Grid>
-                    <TextBlock Text="800 Koin"
+                    <TextBlock Text="{Binding TotalKoinDisplay}"
                                FontFamily="{StaticResource HeadingFont}"
                                FontSize="26" FontWeight="SemiBold"
                                Foreground="{StaticResource ForestGreenBrush}"
                                Margin="0,6,0,0"/>
-                    <TextBlock Text="+120 Koin minggu ini"
+                    <TextBlock Text="{Binding KoinMingguanDisplay}"
                                FontFamily="{StaticResource BodyFont}"
                                FontSize="11" Foreground="{StaticResource QuestText}"
                                Margin="0,4,0,0"/>
-                    <TextBlock Text="45 Koin siap diklaim dari misi hari ini"
-                               FontFamily="{StaticResource BodyFont}"
-                               FontSize="10" Foreground="{StaticResource QuestMuted}"
-                               Margin="0,9,0,0" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
             </Border>
 

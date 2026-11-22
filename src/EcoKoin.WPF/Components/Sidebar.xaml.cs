@@ -18,7 +18,8 @@ namespace EcoKoin.WPF.Components
 
         public void SetLoggedIn(
             bool loggedIn,
-            string? email = null)
+            string? email = null,
+            string? displayName = null)
         {
             IsLoggedIn = loggedIn;
 
@@ -26,7 +27,7 @@ namespace EcoKoin.WPF.Components
                 loggedIn ? "Logout" : "Login";
 
             ProfileNameText.Text = loggedIn
-                ? (email?.Split('@')[0] ?? "Pengguna")
+                ? (displayName ?? email?.Split('@')[0] ?? "Pengguna")
                 : "Belum login";
 
             ProfileEmailText.Text = loggedIn

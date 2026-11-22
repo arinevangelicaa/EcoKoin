@@ -16,6 +16,7 @@ namespace EcoKoin.WPF
             var user = AuthBridge.CurrentUser;
             var dashboard = new DashboardViewModel(user);
             DashboardContent.DataContext = dashboard;
+            QuestRewardContent.DataContext = dashboard;
 
             void ApplyWeatherPreference() => dashboard.WeatherRecommendationsEnabled =
                 WelcomePreferencesStore.Load().WeatherRecommendationsEnabled;
@@ -34,7 +35,7 @@ namespace EcoKoin.WPF
             AppSidebar.AuthActionRequested +=
                 OnAuthActionRequested;
 
-            AppSidebar.SetLoggedIn(user is not null, user?.Email);
+            AppSidebar.SetLoggedIn(user is not null, user?.Email, dashboard.AccountDisplayName);
 
             Loaded += (_, _) =>
             {
