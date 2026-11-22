@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:components="clr-namespace:EcoKoin.WPF.Components"
         xmlns:views="clr-namespace:EcoKoin.WPF.Views"
-        xmlns:viewModels="clr-namespace:EcoKoin.WPF.ViewModels"
         Title="EcoKoin - Dashboard"
         Width="1280"
         Height="720"
@@ -15,8 +14,6 @@
         Background="{StaticResource CanvasBrush}"
         FontFamily="Segoe UI">
     <Window.Resources>
-        <!-- Data demo Dashboard, siap diganti service BE -->
-        <viewModels:DashboardViewModel x:Key="DashboardMockData"/>
         <SolidColorBrush x:Key="Forest" Color="#2B4B3E"/>
         <SolidColorBrush x:Key="Muted" Color="#678177"/>
         <SolidColorBrush x:Key="Panel" Color="#E8F2F0"/>
@@ -113,8 +110,7 @@
         <components:Sidebar x:Name="AppSidebar" Grid.Column="0" Loaded="AppSidebar_Loaded"/>
 
         <!-- DASHBOARD -->
-        <Grid x:Name="DashboardContent" Grid.Column="1" Margin="18,12,18,12"
-              DataContext="{StaticResource DashboardMockData}">
+        <Grid x:Name="DashboardContent" Grid.Column="1" Margin="18,12,18,12">
 
             <Grid>
                 <Grid.RowDefinitions>
@@ -138,7 +134,7 @@
                         Foreground="{StaticResource SunOrangeBrush}"
                         Margin="0,0,15,0"/>
                         <StackPanel>
-                            <TextBlock Text="Hai, Hermione!" FontSize="25" FontWeight="Bold" Foreground="{StaticResource Forest}"/>
+                            <TextBlock Text="{Binding GreetingDisplay}" FontSize="25" FontWeight="Bold" Foreground="{StaticResource Forest}"/>
                             <TextBlock Text="Pantau efisiensi energi, interaksi EcoPet, dan misi penghematan harian kamu" FontSize="10" Foreground="#303C38" Margin="0,4,0,0"/>
                         </StackPanel>
                     </StackPanel>
