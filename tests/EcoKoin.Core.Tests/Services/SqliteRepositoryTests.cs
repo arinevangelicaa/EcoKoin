@@ -461,6 +461,63 @@ public class SqliteRepositoryTests : IDisposable
     // ---- connection rules ----------------------------------------------------------------
 
     [Fact]
+    public void WeatherAdaptiveQuest_Apply_Claim_And_PetStateLifecycle()
+    {
+        var user = NewUser("u-weather", "weather_tester", coins: 0);
+        Repo.SaveUser(user);
+        var quests = Repo.EnsureDailyQuests(user.UserId, Today);
+        var weatherQuest = quests.OfType<WeatherAdaptiveQuest>().Single();
+        var powerQuest = quests.OfType<PowerSaverQuest>().Single();
+
+        Assert.Equal(0, Repo.GetCoinsEarnedToday(user.UserId, Today));
+        Assert.False(Repo.TryClaimWeatherQuest(user.UserId, Today));
+
+        Assert.True(Repo.TryApplyWeatherQuest(user.UserId, Today));
+        var updatedQuests = Repo.EnsureDailyQuests(user.UserId, Today);
+        Assert.Equal(1, updatedQuests.OfType<WeatherAdaptiveQuest>().Single().CurrentProgress);
+
+        Assert.True(Repo.TryClaimWeatherQuest(user.UserId, Today));
+        Assert.False(Repo.TryClaimWeatherQuest(user.UserId, Today));
+
+        var userAfterWeather = Repo.GetUserByUsername(user.Username)!;
+        Assert.Equal(15, userAfterWeather.TotalEcoKoin);
+        Assert.Equal(15, Repo.GetCoinsEarnedToday(user.UserId, Today));
+        Assert.NotNull(userAfterWeather.Pet);
+        Assert.Equal(PetState.Normal, userAfterWeather.Pet.CurrentState);
+        Assert.Equal(45, userAfterWeather.Pet.HappinessLevel);
+
+        // Advance power saver to target and claim
+        for (int i = 0; i < 240; i++)
+            Repo.RecordPowerSaverMinute(user.UserId, powerQuest.QuestId, Today, 1000 + i);
+
+        Assert.True(Repo.TryClaimPowerSaverQuest(user.UserId, powerQuest.QuestId, Today));
+        var userAfterPower = Repo.GetUserByUsername(user.Username)!;
+        Assert.Equal(35, userAfterPower.TotalEcoKoin);
+        Assert.Equal(35, Repo.GetCoinsEarnedToday(user.UserId, Today));
+        Assert.NotNull(userAfterPower.Pet);
+        Assert.Equal(PetState.Segar, userAfterPower.Pet.CurrentState);
+        Assert.Equal(100, userAfterPower.Pet.HappinessLevel);
+    }
+
+    [Fact]
+    public void GetDailyPowerSaverMinutes_ReturnsMinutesPerDateInRange()
+    {
+        var user = NewUser("u-daily-mins", "daily_user", coins: 0);
+        Repo.SaveUser(user);
+        var q1 = Repo.EnsureDailyQuests(user.UserId, Today.AddDays(-2)).OfType<PowerSaverQuest>().Single();
+        var q2 = Repo.EnsureDailyQuests(user.UserId, Today).OfType<PowerSaverQuest>().Single();
+
+        Repo.RecordPowerSaverMinute(user.UserId, q1.QuestId, Today.AddDays(-2), 10);
+        Repo.RecordPowerSaverMinute(user.UserId, q1.QuestId, Today.AddDays(-2), 11);
+        Repo.RecordPowerSaverMinute(user.UserId, q2.QuestId, Today, 20);
+
+        var daily = Repo.GetDailyPowerSaverMinutes(user.UserId, Today.AddDays(-3), Today);
+        Assert.Equal(2, daily[Today.AddDays(-2)]);
+        Assert.Equal(1, daily[Today]);
+        Assert.False(daily.ContainsKey(Today.AddDays(-1)));
+    }
+
+    [Fact]
     public void Repository_EnforcesForeignKeysOnEveryCall()
     {
         // Each repository call opens a fresh connection; all of them must reject orphan rows.

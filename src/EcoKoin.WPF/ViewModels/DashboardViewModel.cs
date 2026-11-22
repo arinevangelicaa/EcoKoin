@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -33,14 +33,23 @@ namespace EcoKoin.WPF.ViewModels
         private bool _weatherRecommendationsEnabled = true;
         private string _rekomendasiSleepDisplay = "Sleep setelah 5 menit idle";
         private string _alasanRekomendasiSleepDisplay = "Kamu sering meninggalkan PC";
-        private int _level = 5;
-        private int _xp = 350;
+        private int _level = 1;
+        private int _xp = 0;
         private int _xpTarget = 500;
         private int _misiSelesai;
-        private int _jumlahMisi = 1;
+        private int _jumlahMisi = 2;
+        private bool _powerSaverComplete;
+        private bool _weatherQuestComplete;
         private string _powerSaverStatus = "Memuat progres misi…";
         private string _powerSaverReward = "Klaim +20";
         private bool _canClaimPowerSaver;
+        private string _weatherQuestStatus = "Terapkan rekomendasi cuaca di kartu cuaca.";
+        private string _weatherQuestReward = "+15 Koin";
+        private bool _canClaimWeatherQuest;
+        private string _petImageSource = "/Assets/Images/happy.png";
+        private string _petStatusDisplay = "Happy & Healthy";
+        private string _petMessageDisplay = "Langkah kecilmu bikin aku tumbuh!";
+        private string _petSubMessageDisplay = "Terus hemat energi secara konsisten untuk menjaga EcoPet tetap sehat.";
         private string _grafikStatusDisplay = "Ilustrasi";
         private double[] _grafikMingguan = { 0.15, 0.25, 0.33, 0.43, 0.52, 0.60, 0.72 };
 
@@ -51,9 +60,24 @@ namespace EcoKoin.WPF.ViewModels
                 name = user?.Email.Split('@')[0].Trim();
 
             AccountDisplayName = string.IsNullOrEmpty(name) ? null : name;
-            _totalKoinDisplay = user?.TotalEcoKoin is int balance
-                ? $"{balance.ToString("N0", IndonesianCulture)} Koin"
-                : "—";
+            if (user?.TotalEcoKoin is int balance)
+            {
+                _totalKoinDisplay = $"{balance.ToString("N0", IndonesianCulture)} Koin";
+                _level = balance / 500 + 1;
+                _xp = balance % 500;
+                _xpTarget = 500;
+                if (balance == 0)
+                {
+                    _petImageSource = "/Assets/Images/sad.png";
+                    _petStatusDisplay = "Lemas & Butuh Energi";
+                    _petMessageDisplay = "EcoPet butuh energi! Selesaikan misi hemat daya hari ini.";
+                    _petSubMessageDisplay = "Yuk selesaikan misi hari ini untuk mengembalikan energi EcoPet.";
+                }
+            }
+            else
+            {
+                _totalKoinDisplay = "—";
+            }
         }
 
         public string? AccountDisplayName { get; }
@@ -135,6 +159,11 @@ namespace EcoKoin.WPF.ViewModels
         public string XpDisplay => $"{Xp} / {XpTarget} XP";
         public double XpProgress => Math.Clamp((double)Xp / XpTarget * 100, 0, 100);
 
+        public string PetImageSource { get => _petImageSource; set => SetProperty(ref _petImageSource, value); }
+        public string PetStatusDisplay { get => _petStatusDisplay; set => SetProperty(ref _petStatusDisplay, value); }
+        public string PetMessageDisplay { get => _petMessageDisplay; set => SetProperty(ref _petMessageDisplay, value); }
+        public string PetSubMessageDisplay { get => _petSubMessageDisplay; set => SetProperty(ref _petSubMessageDisplay, value); }
+
         public int MisiSelesai { get => _misiSelesai; set { if (SetProperty(ref _misiSelesai, Math.Max(0, value))) NotifyMisi(); } }
         public int JumlahMisi { get => _jumlahMisi; set { if (SetProperty(ref _jumlahMisi, Math.Max(0, value))) NotifyMisi(); } }
         public string MisiSelesaiDisplay => $"{Math.Min(MisiSelesai, JumlahMisi)} dari {JumlahMisi} misi selesai";
@@ -146,22 +175,73 @@ namespace EcoKoin.WPF.ViewModels
         public string PowerSaverReward { get => _powerSaverReward; private set => SetProperty(ref _powerSaverReward, value); }
         public bool CanClaimPowerSaver { get => _canClaimPowerSaver; internal set => SetProperty(ref _canClaimPowerSaver, value); }
 
+        public ICommand? ClaimWeatherQuestCommand { get; internal set; }
+        public string WeatherQuestStatus { get => _weatherQuestStatus; internal set => SetProperty(ref _weatherQuestStatus, value); }
+        public string WeatherQuestReward { get => _weatherQuestReward; private set => SetProperty(ref _weatherQuestReward, value); }
+        public bool CanClaimWeatherQuest { get => _canClaimWeatherQuest; internal set => SetProperty(ref _canClaimWeatherQuest, value); }
+
+        public void UpdateAccountStats(int totalEcoKoin, int coinsEarnedToday)
+        {
+            TotalKoinDisplay = $"{totalEcoKoin.ToString("N0", IndonesianCulture)} Koin";
+            Level = totalEcoKoin / 500 + 1;
+            Xp = totalEcoKoin % 500;
+            XpTarget = 500;
+
+            if (coinsEarnedToday >= 30)
+            {
+                PetImageSource = "/Assets/Images/happy.png";
+                PetStatusDisplay = "Happy & Healthy";
+                PetMessageDisplay = "Yeay! Kamu sudah menghemat energi hari ini!";
+                PetSubMessageDisplay = "Terus hemat energi secara konsisten untuk menjaga EcoPet tetap bahagia.";
+            }
+            else if (coinsEarnedToday >= 10)
+            {
+                PetImageSource = "/Assets/Images/netral.png";
+                PetStatusDisplay = "Normal & Cukup Aktif";
+                PetMessageDisplay = "Bagus! Tetap pertahankan kebiasaan hemat energimu!";
+                PetSubMessageDisplay = "Terus hemat energi secara konsisten untuk menjaga EcoPet tetap sehat.";
+            }
+            else
+            {
+                PetImageSource = "/Assets/Images/sad.png";
+                PetStatusDisplay = "Lemas & Butuh Energi";
+                PetMessageDisplay = "EcoPet butuh energi! Selesaikan misi hemat daya hari ini.";
+                PetSubMessageDisplay = "Yuk selesaikan misi hari ini untuk mengembalikan energi EcoPet.";
+            }
+        }
+
         internal void ShowPowerSaverQuest(PowerSaverQuest quest, int? balance, bool? isActive)
         {
             if (balance is int coins)
                 TotalKoinDisplay = $"{coins.ToString("N0", IndonesianCulture)} Koin";
 
-            bool complete = quest.CheckCompletion();
-            MisiSelesai = complete ? 1 : 0;
+            _powerSaverComplete = quest.CheckCompletion();
+            MisiSelesai = (_powerSaverComplete ? 1 : 0) + (_weatherQuestComplete ? 1 : 0);
             PowerSaverReward = quest.IsClaimed ? "Diklaim" : $"Klaim +{quest.RewardCoin}";
             PowerSaverStatus = quest.IsClaimed ? "Hadiah sudah diklaim."
-                : complete ? "Selesai. Hadiah siap diklaim."
+                : _powerSaverComplete ? "Selesai. Hadiah siap diklaim."
                 : $"{quest.CurrentProgress}/{quest.TargetValue} menit. " + (isActive switch
                 {
                     true => "Power Saver aktif.",
                     false => "Aktifkan Energy Saver atau plan Power Saver di Windows.",
                     null => "Status plan daya belum terbaca."
                 });
+        }
+
+        internal void ShowWeatherQuest(WeatherAdaptiveQuest quest)
+        {
+            _weatherQuestComplete = quest.CheckCompletion();
+            MisiSelesai = (_powerSaverComplete ? 1 : 0) + (_weatherQuestComplete ? 1 : 0);
+
+            WeatherQuestReward = quest.IsClaimed ? "Diklaim"
+                : quest.CheckCompletion() ? $"Klaim +{quest.RewardCoin}"
+                : $"+{quest.RewardCoin} Koin";
+
+            WeatherQuestStatus = quest.IsClaimed ? "Hadiah sudah diklaim."
+                : quest.CheckCompletion() ? "Selesai. Hadiah siap diklaim."
+                : "Terapkan rekomendasi cuaca di kartu cuaca.";
+
+            CanClaimWeatherQuest = !quest.IsClaimed && quest.CheckCompletion();
         }
 
         // Chart takes exactly seven non-negative values, oldest to newest.

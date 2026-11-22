@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 using EcoKoin.Models;
 using EcoKoin.ViewModels;
@@ -8,6 +13,18 @@ namespace EcoKoin.WPF
 {
     public partial class MainWindow
     {
+        private enum QuestClaimTarget
+        {
+            None,
+            PowerSaver,
+            Weather
+        }
+
+        private Func<Task>? _refreshQuestsAction;
+
+        internal Task RefreshActiveQuestsAsync() =>
+            _refreshQuestsAction is not null ? _refreshQuestsAction() : Task.CompletedTask;
+
         private void InitializePowerSaverQuest(DashboardViewModel dashboard, AuthUser user, SqliteAccountService accounts,
             WindowsPowerSaverStatus powerStatus)
         {
@@ -20,17 +37,19 @@ namespace EcoKoin.WPF
         {
             string userId = user.UserId!;
             DateTimeOffset? previousActiveSample = null;
-            PowerSaverQuest? displayedQuest = null;
+            PowerSaverQuest? displayedPowerQuest = null;
+            WeatherAdaptiveQuest? displayedWeatherQuest = null;
             bool busy = false;
             bool closed = false;
 
-            async Task RefreshAsync(PowerSaverQuest? claim = null)
+            async Task RefreshAsync(QuestClaimTarget claimTarget = QuestClaimTarget.None)
             {
                 if (busy || closed)
                     return;
 
                 busy = true;
                 dashboard.CanClaimPowerSaver = false;
+                dashboard.CanClaimWeatherQuest = false;
                 try
                 {
                     var now = getTime();
@@ -39,63 +58,128 @@ namespace EcoKoin.WPF
                     var result = await Task.Run(() =>
                     {
                         var repository = accounts.GetRepository();
-                        var quest = repository.EnsureDailyQuests(userId, date).OfType<PowerSaverQuest>().First();
-                        if (claim is not null)
+                        var allQuests = repository.EnsureDailyQuests(userId, date);
+                        var power = allQuests.OfType<PowerSaverQuest>().First();
+                        var weather = allQuests.OfType<WeatherAdaptiveQuest>().First();
+
+                        if (claimTarget == QuestClaimTarget.PowerSaver)
                         {
-                            repository.TryClaimPowerSaverQuest(userId, claim.QuestId, date);
-                            quest = repository.EnsureDailyQuests(userId, date).OfType<PowerSaverQuest>().First();
+                            repository.TryClaimPowerSaverQuest(userId, power.QuestId, date);
+                            allQuests = repository.EnsureDailyQuests(userId, date);
+                            power = allQuests.OfType<PowerSaverQuest>().First();
+                        }
+                        else if (claimTarget == QuestClaimTarget.Weather)
+                        {
+                            repository.TryClaimWeatherQuest(userId, date);
+                            allQuests = repository.EnsureDailyQuests(userId, date);
+                            weather = allQuests.OfType<WeatherAdaptiveQuest>().First();
                         }
 
-                        bool? active = claim is null ? isPowerSaverActive() : null;
+                        bool? active = claimTarget == QuestClaimTarget.None ? isPowerSaverActive() : null;
                         if (active == true && previous is { } last &&
                             DateOnly.FromDateTime(last.LocalDateTime) == date &&
                             now - last >= TimeSpan.FromSeconds(55) &&
                             now - last <= TimeSpan.FromSeconds(75) &&
                             now.ToUnixTimeSeconds() / 60 == last.ToUnixTimeSeconds() / 60 + 1)
                         {
-                            repository.RecordPowerSaverMinute(userId, quest.QuestId, date, now.ToUnixTimeSeconds() / 60);
-                            quest = repository.EnsureDailyQuests(userId, date).OfType<PowerSaverQuest>().First();
+                            repository.RecordPowerSaverMinute(userId, power.QuestId, date, now.ToUnixTimeSeconds() / 60);
+                            allQuests = repository.EnsureDailyQuests(userId, date);
+                            power = allQuests.OfType<PowerSaverQuest>().First();
                         }
 
-                        return (Quest: quest, Active: active,
-                            Balance: repository.GetUserByUsername(user.Email)?.TotalEcoKoin,
-                            WeeklyMinutes: repository.GetPowerSaverMinutes(userId, date.AddDays(-6), date));
+                        int coinsToday = repository.GetCoinsEarnedToday(userId, date);
+                        var userRow = repository.GetUserByUsername(user.Email);
+                        long weeklyMinutes = repository.GetPowerSaverMinutes(userId, date.AddDays(-6), date);
+                        var dailyMinutes = repository.GetDailyPowerSaverMinutes(userId, date.AddDays(-6), date);
+
+                        return (Power: power, Weather: weather, Active: active,
+                            Balance: userRow?.TotalEcoKoin,
+                            CoinsToday: coinsToday,
+                            WeeklyMinutes: weeklyMinutes,
+                            DailyMinutes: dailyMinutes);
                     });
+
                     if (closed)
                         return;
 
-                    if (claim is null)
+                    if (claimTarget == QuestClaimTarget.None)
                         previousActiveSample = result.Active == true ? now : null;
-                    displayedQuest = result.Quest;
+
+                    displayedPowerQuest = result.Power;
+                    displayedWeatherQuest = result.Weather;
                     user.TotalEcoKoin = result.Balance;
-                    dashboard.ShowPowerSaverQuest(result.Quest, result.Balance, result.Active);
+
+                    int balance = result.Balance ?? 0;
+                    dashboard.UpdateAccountStats(balance, result.CoinsToday);
+                    dashboard.ShowPowerSaverQuest(result.Power, result.Balance, result.Active);
+                    dashboard.ShowWeatherQuest(result.Weather);
+
+                    // Update Analysis KPI and weekly 7-day chart
+                    double weeklyKwh = (20.0 * (result.WeeklyMinutes / 60.0)) / 1000.0;
+                    double weeklyCo2 = weeklyKwh * 0.87;
+                    double weeklyRp = weeklyKwh * 1444.70;
+
+                    var idCulture = CultureInfo.GetCultureInfo("id-ID");
+                    var points = new List<AnalysisDataPoint>(7);
+                    var chartValues = new double[7];
+                    var todayDate = DateOnly.FromDateTime(now.LocalDateTime);
+                    for (int i = 6; i >= 0; i--)
+                    {
+                        var d = todayDate.AddDays(-i);
+                        long m = result.DailyMinutes.TryGetValue(d, out var min) ? min : 0;
+                        double dayKwh = (20.0 * (m / 60.0)) / 1000.0;
+                        points.Add(new AnalysisDataPoint
+                        {
+                            Label = d.ToString("ddd", idCulture),
+                            Co2SavedKg = dayKwh * 0.87,
+                            MoneySavedRp = dayKwh * 1444.70
+                        });
+                        chartValues[6 - i] = dayKwh;
+                    }
+
+                    AnalysisContent.UpdatePeriodData(0, points, weeklyKwh, weeklyCo2, weeklyRp);
                     AnalysisContent.ShowWeeklyPowerSaverMinutes(result.WeeklyMinutes);
+                    dashboard.SetGrafikMingguan(chartValues, isDemo: false);
                 }
                 catch (Exception ex)
                 {
                     previousActiveSample = null;
                     if (!closed)
                         dashboard.PowerSaverStatus = "Misi belum dapat dimuat. EcoKoin akan mencoba lagi.";
-                    System.Diagnostics.Trace.TraceError("EcoKoin Power Saver quest failed: {0}", ex.GetType().Name);
+                    System.Diagnostics.Trace.TraceError("EcoKoin Quest tracking failed: {0}", ex.GetType().Name);
                 }
                 finally
                 {
                     busy = false;
-                    if (!closed && displayedQuest is { IsClaimed: false } quest)
-                        dashboard.CanClaimPowerSaver = quest.CheckCompletion();
+                    if (!closed)
+                    {
+                        if (displayedPowerQuest is { IsClaimed: false } pq)
+                            dashboard.CanClaimPowerSaver = pq.CheckCompletion();
+                        if (displayedWeatherQuest is { IsClaimed: false } wq)
+                            dashboard.CanClaimWeatherQuest = wq.CheckCompletion();
+                    }
                 }
             }
 
+            _refreshQuestsAction = () => RefreshAsync(QuestClaimTarget.None);
+
             dashboard.ClaimPowerSaverCommand = new RelayCommand(async _ =>
             {
-                if (displayedQuest is not null)
-                    await RefreshAsync(displayedQuest);
+                if (displayedPowerQuest is not null)
+                    await RefreshAsync(QuestClaimTarget.PowerSaver);
             });
-            timer.Tick += async (_, _) => await RefreshAsync();
+
+            dashboard.ClaimWeatherQuestCommand = new RelayCommand(async _ =>
+            {
+                if (displayedWeatherQuest is not null)
+                    await RefreshAsync(QuestClaimTarget.Weather);
+            });
+
+            timer.Tick += async (_, _) => await RefreshAsync(QuestClaimTarget.None);
             Loaded += async (_, _) =>
             {
                 timer.Start();
-                await RefreshAsync();
+                await RefreshAsync(QuestClaimTarget.None);
             };
             Closed += (_, _) =>
             {
