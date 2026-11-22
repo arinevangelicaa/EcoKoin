@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Windows.Threading;
@@ -29,6 +31,31 @@ namespace EcoKoin.WPF
                 string? value = Environment.GetEnvironmentVariable(WeatherApiKeyVariable, target)?.Trim();
                 if (!string.IsNullOrEmpty(value))
                     return value;
+            }
+
+            try
+            {
+                string localFile = System.IO.Path.Combine(AppContext.BaseDirectory, "weather-api-key.txt");
+                if (System.IO.File.Exists(localFile))
+                {
+                    string text = System.IO.File.ReadAllText(localFile).Trim();
+                    if (!string.IsNullOrEmpty(text))
+                        return text;
+                }
+
+                string appDataFile = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "EcoKoin", "weather-api-key.txt");
+                if (System.IO.File.Exists(appDataFile))
+                {
+                    string text = System.IO.File.ReadAllText(appDataFile).Trim();
+                    if (!string.IsNullOrEmpty(text))
+                        return text;
+                }
+            }
+            catch
+            {
+                // Ignore read errors and fall back to empty key.
             }
 
             return "";
