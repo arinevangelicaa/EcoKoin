@@ -1,7 +1,9 @@
 ﻿using EcoKoin.WPF.Components;
 using EcoKoin.WPF.Models;
+using EcoKoin.Services;
 using EcoKoin.WPF.ViewModels;
 using System;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -10,7 +12,11 @@ namespace EcoKoin.WPF
 {
     public partial class MainWindow : Window
     {
-        public MainWindow()
+        public MainWindow() : this(WeatherHttpClient, new SystemClock(), WelcomePreferencesStore.Load)
+        {
+        }
+
+        internal MainWindow(HttpClient weatherClient, IClock clock, Func<WelcomePreferences> loadPreferences)
         {
             InitializeComponent();
             var user = AuthBridge.CurrentUser;
@@ -18,12 +24,7 @@ namespace EcoKoin.WPF
             DashboardContent.DataContext = dashboard;
             QuestRewardContent.DataContext = dashboard;
 
-            void ApplyWeatherPreference() => dashboard.WeatherRecommendationsEnabled =
-                WelcomePreferencesStore.Load().WeatherRecommendationsEnabled;
-
-            ApplyWeatherPreference();
-            WelcomePreferencesStore.PreferencesChanged += ApplyWeatherPreference;
-            Closed += (_, _) => WelcomePreferencesStore.PreferencesChanged -= ApplyWeatherPreference;
+            InitializeDashboardWeather(dashboard, weatherClient, clock, loadPreferences);
 
             InitializeDashboardInteractions();
 

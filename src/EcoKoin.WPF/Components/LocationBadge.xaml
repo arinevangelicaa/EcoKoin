@@ -40,6 +40,9 @@
             <TextBlock
                 x:Name="LocationText"
                 Text="Menunggu lokasi perangkat"
+                ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+                MaxWidth="150"
+                TextTrimming="CharacterEllipsis"
                 FontFamily="{StaticResource HeadingFont}"
                 FontSize="12"
                 FontWeight="SemiBold"

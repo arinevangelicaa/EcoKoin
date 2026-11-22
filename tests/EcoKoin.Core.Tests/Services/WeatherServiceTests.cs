@@ -131,6 +131,18 @@ public class WeatherServiceTests
         await Assert.ThrowsAsync<WeatherUnavailableException>(() => svc.FetchCurrentWeatherAsync());
     }
 
+    [Fact]
+    public async Task Fetch_EmptyWeatherList_NoCache_ThrowsWeatherUnavailable()
+    {
+        var (svc, handler, _) = Create();
+        handler.Respond = _ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"main":{"temp":28.4,"humidity":78},"weather":[],"clouds":{"all":75}}""")
+        };
+
+        await Assert.ThrowsAsync<WeatherUnavailableException>(() => svc.FetchCurrentWeatherAsync());
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

@@ -262,13 +262,16 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="Lokasi cuaca"
-                                           Style="{StaticResource SetHeading}"
+                                <Label Grid.Column="0"
+                                           Content="Lokasi cuaca"
+                                           Target="{Binding ElementName=WeatherLocationInput}"
                                            FontSize="12"
+                                           Foreground="{StaticResource SetForest}"
+                                           FontWeight="SemiBold"
+                                           Padding="0"
                                            VerticalAlignment="Center"
                                            Margin="0,0,12,0"/>
-                                <Grid Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Grid Grid.Column="1" VerticalAlignment="Center">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="16"/>
                                         <ColumnDefinition Width="8"/>
@@ -280,13 +283,9 @@
                                           Fill="{StaticResource SetForest}"
                                           VerticalAlignment="Center"
                                           Data="M12,2 C8.13,2 5,5.13 5,9 C5,14.25 12,22 12,22 C12,22 19,14.25 19,9 C19,5.13 15.87,2 12,2 Z M12,12 A3,3 0 1 1 12,6 A3,3 0 1 1 12,12 Z"/>
-                                    <TextBlock x:Name="WeatherLocationText"
-                                               Grid.Column="2"
-                                               Text="Menunggu lokasi perangkat"
-                                               Style="{StaticResource SetHeading}"
-                                               FontSize="12"
-                                               VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBox x:Name="WeatherLocationInput" Grid.Column="2"
+                                             FontSize="12" MaxLength="80" Padding="5,3"
+                                             ToolTip="Masukkan nama kota, misalnya Yogyakarta atau Bandung,ID."/>
                                 </Grid>
                             </Grid>
                             <Border Grid.Row="3" Background="{StaticResource SetMint}" CornerRadius="14" Padding="12,6"
