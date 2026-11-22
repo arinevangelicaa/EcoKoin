@@ -14,7 +14,8 @@ namespace EcoKoin.WPF
             base.OnStartup(e);
 
             AuthBridge.LoginHandler ??= Accounts.LoginAsync;
-            AuthBridge.LogoutHandler ??= () => Task.FromResult(true);
+            AuthBridge.RestoreSessionHandler ??= Accounts.RestoreSessionAsync;
+            AuthBridge.LogoutHandler ??= Accounts.LogoutAsync;
 
             Window startWindow;
 
