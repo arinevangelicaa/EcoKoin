@@ -14,6 +14,7 @@ namespace EcoKoin.WPF.Views
         {
             InitializeComponent();
             _preferences = WelcomePreferencesStore.Load();
+            _preferences.WeatherLocation = _preferences.GetWeatherLocation();
             PowerSaverToggle.IsChecked = _preferences.PowerSaverEnabled;
 
             foreach (ComboBoxItem item in SleepCombo.Items)
@@ -84,7 +85,7 @@ namespace EcoKoin.WPF.Views
             {
                 _preferences.PowerSaverEnabled = true;
                 _preferences.SleepDelay = "5 menit";
-                _preferences.WeatherLocation = "Catur Tunggal";
+                _preferences.WeatherLocation = WelcomePreferences.DefaultWeatherLocation;
             }
             _preferences.HasCompletedOnboarding = true;
             try

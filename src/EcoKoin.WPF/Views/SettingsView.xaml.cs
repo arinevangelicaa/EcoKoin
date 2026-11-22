@@ -25,7 +25,7 @@ namespace EcoKoin.WPF.Views
                 _ => saved.PowerSaverEnabled ? 1 : 0
             };
             SelectComboValue(SleepTimeBox, saved.SleepDelay);
-            WeatherLocationText.Text = "Menunggu lokasi perangkat";
+            WeatherLocationInput.Text = saved.GetWeatherLocation();
 
             WeatherToggle.IsChecked = saved.WeatherRecommendationsEnabled;
             PetDesktopToggle.IsChecked = saved.PetDesktopEnabled;
@@ -49,6 +49,14 @@ namespace EcoKoin.WPF.Views
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
+            string weatherLocation = WeatherLocationInput.Text.Trim();
+            if (weatherLocation.Length < 2)
+            {
+                SaveStatusText.Text = "Isi lokasi cuaca minimal 2 karakter.";
+                WeatherLocationInput.Focus();
+                return;
+            }
+
             var saved = WelcomePreferencesStore.Load();
             saved.PowerProfile =
                 (PowerProfileBox.SelectedItem as ComboBoxItem)?
@@ -56,6 +64,7 @@ namespace EcoKoin.WPF.Views
 
             saved.PowerSaverEnabled = saved.PowerProfile == "Hemat daya";
             saved.SleepDelay = (SleepTimeBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "5 menit";
+            saved.WeatherLocation = weatherLocation;
             saved.WeatherRecommendationsEnabled = WeatherToggle.IsChecked == true;
             saved.PetDesktopEnabled = PetDesktopToggle.IsChecked == true;
             saved.PetReminderEnabled = PetReminderToggle.IsChecked == true;
@@ -77,6 +86,7 @@ namespace EcoKoin.WPF.Views
         {
             PowerProfileBox.SelectedIndex = 1;
             SelectComboValue(SleepTimeBox, "5 menit");
+            WeatherLocationInput.Text = WelcomePreferences.DefaultWeatherLocation;
             WeatherToggle.IsChecked = true;
             PetDesktopToggle.IsChecked = true;
             PetReminderToggle.IsChecked = true;

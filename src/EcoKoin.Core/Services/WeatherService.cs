@@ -56,7 +56,7 @@ namespace EcoKoin.Services
                 return data;
             }
             catch (Exception ex) when (ex is HttpRequestException or JsonException or KeyNotFoundException
-                                        or InvalidOperationException or FormatException
+                                        or InvalidOperationException or FormatException or IndexOutOfRangeException
                                         or TaskCanceledException or OperationCanceledException)
             {
                 if (ct.IsCancellationRequested)

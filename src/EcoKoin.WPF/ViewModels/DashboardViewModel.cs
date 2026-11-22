@@ -4,11 +4,12 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
+using EcoKoin.Models;
 using EcoKoin.WPF.Models;
 
 namespace EcoKoin.WPF.ViewModels
 {
-    // Dashboard presentation. Weather, power, and quest values still use demo data.
+    // Dashboard presentation. Power and quest values still use demo data.
     public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -16,17 +17,18 @@ namespace EcoKoin.WPF.ViewModels
 
         private string _totalKoinDisplay;
         private string _koinMingguanDisplay = "";
-        private string _suhuDisplay = "31° C";
-        private string _cuacaDisplay = "Cerah Berawan";
-        private string _kelembapanDisplay = "65%";
-        private string _kondisiUdaraDisplay = "Udara Lembap";
+        private string _suhuDisplay = "—";
+        private string _cuacaDisplay = "Memuat cuaca…";
+        private string _kelembapanDisplay = "—";
+        private string _kondisiUdaraDisplay = "";
         private string _bateraiDisplay = "75%";
         private string _statusDayaDisplay = "On Battery";
         private string _energiDisplay = "2.5 kWh";
         private string _emisiDisplay = "1.2 kg";
         private string _biayaDisplay = "Rp12.500";
-        private string _rekomendasiCuacaDisplay = "Turunkan kecerahan ke 40%";
-        private string _alasanRekomendasiCuacaDisplay = "Cuaca berawan, layar tidak perlu terang maksimal";
+        private string _rekomendasiCuacaDisplay = "Memuat cuaca…";
+        private string _alasanRekomendasiCuacaDisplay = "";
+        private bool _canApplyWeatherRecommendation;
         private bool _weatherRecommendationsEnabled = true;
         private string _rekomendasiSleepDisplay = "Sleep setelah 5 menit idle";
         private string _alasanRekomendasiSleepDisplay = "Kamu sering meninggalkan PC";
@@ -65,6 +67,51 @@ namespace EcoKoin.WPF.ViewModels
         public string BiayaDisplay { get => _biayaDisplay; set => SetProperty(ref _biayaDisplay, value); }
         public string RekomendasiCuacaDisplay { get => _rekomendasiCuacaDisplay; set => SetProperty(ref _rekomendasiCuacaDisplay, value); }
         public string AlasanRekomendasiCuacaDisplay { get => _alasanRekomendasiCuacaDisplay; set => SetProperty(ref _alasanRekomendasiCuacaDisplay, value); }
+        public bool CanApplyWeatherRecommendation
+        {
+            get => _canApplyWeatherRecommendation;
+            private set => SetProperty(ref _canApplyWeatherRecommendation, value);
+        }
+
+        internal void ShowWeatherStatus(string status, string detail)
+        {
+            SuhuDisplay = "—";
+            CuacaDisplay = status;
+            KelembapanDisplay = "—";
+            KondisiUdaraDisplay = "";
+            RekomendasiCuacaDisplay = status;
+            AlasanRekomendasiCuacaDisplay = detail;
+            CanApplyWeatherRecommendation = false;
+        }
+
+        internal void ShowWeather(WeatherData weather, string recommendation, bool isStale)
+        {
+            SuhuDisplay = weather.Temperature.ToString("0.#", IndonesianCulture) + " °C";
+            KelembapanDisplay = weather.Humidity.ToString(IndonesianCulture) + "%";
+            CuacaDisplay = weather.Condition switch
+            {
+                "Clear" => "Cerah",
+                "Clouds" => "Berawan",
+                "Rain" => "Hujan",
+                "Drizzle" => "Gerimis",
+                "Thunderstorm" => "Badai petir",
+                "Mist" or "Fog" or "Haze" => "Berkabut",
+                "Snow" => "Salju",
+                "" => "Kondisi tidak tersedia",
+                _ => weather.Condition
+            };
+            KondisiUdaraDisplay = isStale ? "Data terakhir" : "";
+            if (isStale)
+                CuacaDisplay += " (data terakhir)";
+
+            RekomendasiCuacaDisplay = recommendation;
+            string cloudiness = weather.Cloudiness.ToString(IndonesianCulture) + "%";
+            AlasanRekomendasiCuacaDisplay = isStale
+                ? "Berdasarkan data terakhir. Cuaca terbaru belum tersedia."
+                : $"Tutupan awan {cloudiness}.";
+            CanApplyWeatherRecommendation = !isStale && weather.Cloudiness >= 30;
+        }
+
         public bool WeatherRecommendationsEnabled
         {
             get => _weatherRecommendationsEnabled;

@@ -7,11 +7,17 @@ namespace EcoKoin.WPF.Models
     // Local UI preferences. This class does not change Windows power settings.
     public sealed class WelcomePreferences
     {
+        public const string DefaultWeatherLocation = "Yogyakarta";
+
         public bool HasCompletedOnboarding { get; set; }
         public bool PowerSaverEnabled { get; set; } = true;
         public string PowerProfile { get; set; } = "";
         public string SleepDelay { get; set; } = "5 menit";
-        public string WeatherLocation { get; set; } = "Catur Tunggal";
+        public string WeatherLocation { get; set; } = DefaultWeatherLocation;
+
+        public string GetWeatherLocation() => string.IsNullOrWhiteSpace(WeatherLocation)
+            ? DefaultWeatherLocation
+            : WeatherLocation.Trim();
 
         // Keep these preferences across application restarts.
         public bool WeatherRecommendationsEnabled { get; set; } = true;
