@@ -27,6 +27,7 @@ namespace EcoKoin.WPF.ViewModels
         private string _biayaDisplay = "Rp12.500";
         private string _rekomendasiCuacaDisplay = "Turunkan kecerahan ke 40%";
         private string _alasanRekomendasiCuacaDisplay = "Cuaca berawan, layar tidak perlu terang maksimal";
+        private bool _weatherRecommendationsEnabled = true;
         private string _rekomendasiSleepDisplay = "Sleep setelah 5 menit idle";
         private string _alasanRekomendasiSleepDisplay = "Kamu sering meninggalkan PC";
         private int _level = 5;
@@ -63,6 +64,12 @@ namespace EcoKoin.WPF.ViewModels
         public string BiayaDisplay { get => _biayaDisplay; set => SetProperty(ref _biayaDisplay, value); }
         public string RekomendasiCuacaDisplay { get => _rekomendasiCuacaDisplay; set => SetProperty(ref _rekomendasiCuacaDisplay, value); }
         public string AlasanRekomendasiCuacaDisplay { get => _alasanRekomendasiCuacaDisplay; set => SetProperty(ref _alasanRekomendasiCuacaDisplay, value); }
+        public bool WeatherRecommendationsEnabled
+        {
+            get => _weatherRecommendationsEnabled;
+            set => SetProperty(ref _weatherRecommendationsEnabled, value);
+        }
+
         public string RekomendasiSleepDisplay { get => _rekomendasiSleepDisplay; set => SetProperty(ref _rekomendasiSleepDisplay, value); }
         public string AlasanRekomendasiSleepDisplay { get => _alasanRekomendasiSleepDisplay; set => SetProperty(ref _alasanRekomendasiSleepDisplay, value); }
         public string GrafikStatusDisplay { get => _grafikStatusDisplay; set => SetProperty(ref _grafikStatusDisplay, value); }
