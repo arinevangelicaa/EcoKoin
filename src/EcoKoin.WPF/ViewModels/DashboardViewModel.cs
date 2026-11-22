@@ -4,18 +4,18 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
+using EcoKoin.WPF.Models;
 
 namespace EcoKoin.WPF.ViewModels
 {
-    // UI presentation model. Default values are DEMO ONLY, not real device/user data.
-    // Replace demo values with service output in the BE integration step.
+    // Dashboard presentation. Weather, power, and quest values still use demo data.
     public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        private readonly CultureInfo _id = CultureInfo.GetCultureInfo("id-ID");
+        private static readonly CultureInfo IndonesianCulture = CultureInfo.GetCultureInfo("id-ID");
 
-        private string _totalKoinDisplay = "800 Koin";
-        private string _koinMingguanDisplay = "+120 Koin minggu ini";
+        private string _totalKoinDisplay;
+        private string _koinMingguanDisplay = "";
         private string _suhuDisplay = "31° C";
         private string _cuacaDisplay = "Cerah Berawan";
         private string _kelembapanDisplay = "65%";
@@ -37,6 +37,19 @@ namespace EcoKoin.WPF.ViewModels
         private string _grafikStatusDisplay = "Ilustrasi";
         private double[] _grafikMingguan = { 0.15, 0.25, 0.33, 0.43, 0.52, 0.60, 0.72 };
 
+        public DashboardViewModel(AuthUser? user)
+        {
+            var name = user?.Username?.Trim();
+            if (string.IsNullOrEmpty(name))
+                name = user?.Email.Split('@')[0].Trim();
+
+            GreetingDisplay = string.IsNullOrEmpty(name) ? "Hai!" : $"Hai, {name}!";
+            _totalKoinDisplay = user?.TotalEcoKoin is int balance
+                ? $"{balance.ToString("N0", IndonesianCulture)} Koin"
+                : "—";
+        }
+
+        public string GreetingDisplay { get; }
         public string TotalKoinDisplay { get => _totalKoinDisplay; set => SetProperty(ref _totalKoinDisplay, value); }
         public string KoinMingguanDisplay { get => _koinMingguanDisplay; set => SetProperty(ref _koinMingguanDisplay, value); }
         public string SuhuDisplay { get => _suhuDisplay; set => SetProperty(ref _suhuDisplay, value); }

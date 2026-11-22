@@ -1,5 +1,6 @@
 ﻿using EcoKoin.WPF.Components;
 using EcoKoin.WPF.Models;
+using EcoKoin.WPF.ViewModels;
 using System;
 using System.Windows;
 using System.Windows.Controls.Primitives;
@@ -12,6 +13,8 @@ namespace EcoKoin.WPF
         public MainWindow()
         {
             InitializeComponent();
+            var user = AuthBridge.CurrentUser;
+            DashboardContent.DataContext = new DashboardViewModel(user);
             InitializeDashboardInteractions();
 
             AppSidebar.AddHandler(
@@ -22,9 +25,7 @@ namespace EcoKoin.WPF
             AppSidebar.AuthActionRequested +=
                 OnAuthActionRequested;
 
-            AppSidebar.SetLoggedIn(
-                AuthBridge.IsAuthenticated,
-                AuthBridge.CurrentUser?.Email);
+            AppSidebar.SetLoggedIn(user is not null, user?.Email);
 
             Loaded += (_, _) =>
             {
