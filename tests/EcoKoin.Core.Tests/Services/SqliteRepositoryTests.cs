@@ -46,6 +46,39 @@ public class SqliteRepositoryTests : IDisposable
         Assert.Equal(25, reopened.GetUserByUsername(user.Username)!.TotalEcoKoin);
         Assert.True(reopened.EnsureDailyQuests(user.UserId, Today).Single().IsClaimed);
         Assert.Equal(0, reopened.GetUserByUsername(otherUser.Username)!.TotalEcoKoin);
+        reopened.RecordPowerSaverMinute(user.UserId, quest.QuestId, Today, 500);
+        reopened.RecordPowerSaverMinute(user.UserId, quest.QuestId, Today, 501);
+        reopened.RecordPowerSaverMinute(user.UserId, quest.QuestId, Today, 501);
+        Assert.Equal(240, reopened.EnsureDailyQuests(user.UserId, Today).Single().CurrentProgress);
+        Assert.False(reopened.TryClaimPowerSaverQuest(user.UserId, quest.QuestId, Today));
+        Assert.Equal(25, reopened.GetUserByUsername(user.Username)!.TotalEcoKoin);
+
+        var yesterday = Today.AddDays(-1);
+        var yesterdayQuest = reopened.EnsureDailyQuests(user.UserId, yesterday).OfType<PowerSaverQuest>().Single();
+        reopened.RecordPowerSaverMinute(user.UserId, yesterdayQuest.QuestId, yesterday, 10);
+        Assert.Equal(242L, reopened.GetPowerSaverMinutes(user.UserId, Today.AddDays(-6), Today));
+        Assert.Equal(241L, reopened.GetPowerSaverMinutes(user.UserId, Today, Today));
+        Assert.Equal(0L, reopened.GetPowerSaverMinutes(otherUser.UserId, Today.AddDays(-6), Today));
+    }
+
+    [Fact]
+    public void GetPowerSaverMinutes_EmptyUserAndDateRanges_ReturnsZeroAndFiltersCorrectly()
+    {
+        var user = NewUser("u_fresh", "freshuser");
+        Repo.SaveUser(user);
+
+        Assert.Equal(0L, Repo.GetPowerSaverMinutes(user.UserId, Today.AddDays(-6), Today));
+
+        var oldDate = Today.AddDays(-8);
+        var oldQuest = Repo.EnsureDailyQuests(user.UserId, oldDate).OfType<PowerSaverQuest>().Single();
+        Repo.RecordPowerSaverMinute(user.UserId, oldQuest.QuestId, oldDate, 100);
+
+        Assert.Equal(0L, Repo.GetPowerSaverMinutes(user.UserId, Today.AddDays(-6), Today));
+        Assert.Equal(1L, Repo.GetPowerSaverMinutes(user.UserId, Today.AddDays(-10), Today));
+
+        var reopened = new SqliteRepository(_db.ConnectionString);
+        Assert.Equal(0L, reopened.GetPowerSaverMinutes(user.UserId, Today.AddDays(-6), Today));
+        Assert.Equal(1L, reopened.GetPowerSaverMinutes(user.UserId, Today.AddDays(-10), Today));
     }
 
     // ---- schema / init -------------------------------------------------------------------

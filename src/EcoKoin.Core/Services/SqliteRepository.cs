@@ -45,6 +45,13 @@ namespace EcoKoin.Services
                 command.ExecuteNonQuery();
             }
 
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('POWER_SAVER_PROGRESS') WHERE name = 'tracked_minutes';";
+            if ((long)command.ExecuteScalar()! == 0)
+            {
+                command.CommandText = "ALTER TABLE POWER_SAVER_PROGRESS ADD COLUMN tracked_minutes INTEGER;";
+                command.ExecuteNonQuery();
+            }
+
             command.CommandText = seedSql;
             command.ExecuteNonQuery();
             tx.Commit();
@@ -296,20 +303,38 @@ namespace EcoKoin.Services
             using var cmd = connection.CreateCommand();
             cmd.Transaction = tx;
             cmd.CommandText = @"
-                INSERT INTO POWER_SAVER_PROGRESS (quest_id, last_sample_minute)
-                SELECT quest_id, $minute FROM DAILY_QUESTS
+                INSERT INTO POWER_SAVER_PROGRESS (quest_id, last_sample_minute, tracked_minutes)
+                SELECT quest_id, $minute, current_progress + 1 FROM DAILY_QUESTS
                 WHERE quest_id = $quest AND user_id = $user AND quest_date = $date
-                  AND quest_type = 'PowerSaver' AND is_claimed = 0 AND current_progress < target_value
-                ON CONFLICT(quest_id) DO UPDATE SET last_sample_minute = excluded.last_sample_minute
+                  AND quest_type = 'PowerSaver'
+                ON CONFLICT(quest_id) DO UPDATE SET last_sample_minute = excluded.last_sample_minute,
+                    tracked_minutes = COALESCE(POWER_SAVER_PROGRESS.tracked_minutes + 1, excluded.tracked_minutes)
                 WHERE excluded.last_sample_minute > POWER_SAVER_PROGRESS.last_sample_minute;";
             AddPowerSaverParameters(cmd, userId, questId, date);
             cmd.Parameters.AddWithValue("$minute", sampleMinute);
             if (cmd.ExecuteNonQuery() == 1)
             {
-                cmd.CommandText = "UPDATE DAILY_QUESTS SET current_progress = current_progress + 1 WHERE quest_id = $quest;";
+                cmd.CommandText = @"UPDATE DAILY_QUESTS SET current_progress = current_progress + 1
+                                    WHERE quest_id = $quest AND is_claimed = 0 AND current_progress < target_value;";
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();
+        }
+
+        public long GetPowerSaverMinutes(string userId, DateOnly startDate, DateOnly endDate)
+        {
+            using var connection = OpenConnection();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT COALESCE(SUM(COALESCE(p.tracked_minutes, q.current_progress)), 0)
+                FROM DAILY_QUESTS q
+                LEFT JOIN POWER_SAVER_PROGRESS p ON p.quest_id = q.quest_id
+                WHERE q.user_id = $user AND q.quest_type = 'PowerSaver'
+                  AND q.quest_date BETWEEN $start AND $end;";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$start", startDate.ToString(DateFormat, CultureInfo.InvariantCulture));
+            cmd.Parameters.AddWithValue("$end", endDate.ToString(DateFormat, CultureInfo.InvariantCulture));
+            return (long)cmd.ExecuteScalar()!;
         }
 
         public bool TryClaimPowerSaverQuest(string userId, string questId, DateOnly date)

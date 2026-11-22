@@ -43,11 +43,10 @@ namespace EcoKoin.WPF
                         if (claim is not null)
                         {
                             repository.TryClaimPowerSaverQuest(userId, claim.QuestId, date);
-                            return (Quest: repository.EnsureDailyQuests(userId, date).OfType<PowerSaverQuest>().First(),
-                                Active: (bool?)null, Balance: repository.GetUserByUsername(user.Email)?.TotalEcoKoin);
+                            quest = repository.EnsureDailyQuests(userId, date).OfType<PowerSaverQuest>().First();
                         }
 
-                        bool? active = isPowerSaverActive();
+                        bool? active = claim is null ? isPowerSaverActive() : null;
                         if (active == true && previous is { } last &&
                             DateOnly.FromDateTime(last.LocalDateTime) == date &&
                             now - last >= TimeSpan.FromSeconds(55) &&
@@ -58,7 +57,9 @@ namespace EcoKoin.WPF
                             quest = repository.EnsureDailyQuests(userId, date).OfType<PowerSaverQuest>().First();
                         }
 
-                        return (Quest: quest, Active: active, Balance: repository.GetUserByUsername(user.Email)?.TotalEcoKoin);
+                        return (Quest: quest, Active: active,
+                            Balance: repository.GetUserByUsername(user.Email)?.TotalEcoKoin,
+                            WeeklyMinutes: repository.GetPowerSaverMinutes(userId, date.AddDays(-6), date));
                     });
                     if (closed)
                         return;
@@ -68,6 +69,7 @@ namespace EcoKoin.WPF
                     displayedQuest = result.Quest;
                     user.TotalEcoKoin = result.Balance;
                     dashboard.ShowPowerSaverQuest(result.Quest, result.Balance, result.Active);
+                    AnalysisContent.ShowWeeklyPowerSaverMinutes(result.WeeklyMinutes);
                 }
                 catch (Exception ex)
                 {

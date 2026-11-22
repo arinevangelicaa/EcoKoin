@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -23,8 +23,11 @@ namespace EcoKoin.WPF.ViewModels
 
         private string _periodDescription = "";
         private string _emptyMessage = "Data analisis belum tersedia.";
+        private long _powerSaverDurationMinutes;
+        private string _powerSaverDurationDisplay = "—";
+        private string _insightMessage = "Wawasan personal akan ditampilkan setelah data penghematan tersedia.";
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public double EnergySavedKwh
         {
@@ -86,7 +89,74 @@ namespace EcoKoin.WPF.ViewModels
             }
         }
 
+        public long PowerSaverDurationMinutes
+        {
+            get => _powerSaverDurationMinutes;
+            private set
+            {
+                _powerSaverDurationMinutes = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string PowerSaverDurationDisplay
+        {
+            get => _powerSaverDurationDisplay;
+            private set
+            {
+                _powerSaverDurationDisplay = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string InsightMessage
+        {
+            get => _insightMessage;
+            private set
+            {
+                _insightMessage = value;
+                OnPropertyChanged();
+            }
+        }
+
         public bool HasData => ChartData.Count > 0;
+
+        public void SetPowerSaverDuration(long minutes)
+        {
+            PowerSaverDurationMinutes = Math.Max(0, minutes);
+            PowerSaverDurationDisplay = FormatDuration(PowerSaverDurationMinutes);
+            if (PowerSaverDurationMinutes > 0)
+            {
+                InsightMessage = $"Bagus! Kamu telah menghemat daya selama {PowerSaverDurationDisplay} pada periode ini.";
+            }
+            else
+            {
+                InsightMessage = "Belum ada aktivitas hemat daya pada periode ini. Aktifkan Mode hemat daya atau Energy Saver di Windows untuk mulai menghemat.";
+            }
+        }
+
+        public void ClearPowerSaverDuration()
+        {
+            PowerSaverDurationMinutes = 0;
+            PowerSaverDurationDisplay = "—";
+            InsightMessage = "Wawasan personal akan ditampilkan setelah data penghematan tersedia.";
+        }
+
+        public static string FormatDuration(long totalMinutes)
+        {
+            if (totalMinutes <= 0)
+                return "0 menit";
+
+            long hours = totalMinutes / 60;
+            long mins = totalMinutes % 60;
+
+            if (hours == 0)
+                return $"{mins} menit";
+            if (mins == 0)
+                return $"{hours} jam";
+
+            return $"{hours} jam {mins} menit";
+        }
 
         public void SetData(
             IEnumerable<AnalysisDataPoint> points,
@@ -120,7 +190,7 @@ namespace EcoKoin.WPF.ViewModels
         }
 
         private void OnPropertyChanged(
-            [CallerMemberName] string propertyName = null)
+            [CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(
                 this,

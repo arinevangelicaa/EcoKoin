@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EcoKoin.WPF.Views.AnalysisView"
+<UserControl x:Class="EcoKoin.WPF.Views.AnalysisView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:components="clr-namespace:EcoKoin.WPF.Components"
@@ -274,9 +274,9 @@
                                 </Border>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="9,0,0,0">
                                     <TextBlock Text="Mode hemat daya" Foreground="{StaticResource AnalForest}" FontSize="12" FontFamily="{StaticResource BodyFont}"/>
-                                    <TextBlock Text="Mengurangi penggunaan energi saat bekerja." Style="{StaticResource AnalSmall}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Durasi yang tercatat saat EcoKoin berjalan." Style="{StaticResource AnalSmall}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <TextBlock Grid.Column="2" Text="—" VerticalAlignment="Center" Margin="8,0,0,0" Style="{StaticResource AnalHeading}" FontSize="13"/>
+                                <TextBlock Grid.Column="2" Text="{Binding PowerSaverDurationDisplay}" VerticalAlignment="Center" Margin="8,0,0,0" Style="{StaticResource AnalHeading}" FontSize="13"/>
                             </Grid>
                             <!-- Sleep -->
                             <Grid Grid.Row="1">
@@ -320,7 +320,7 @@
                             <TextBlock Text="WAWASAN MINGGU INI" Style="{StaticResource AnalSection}"/>
                         </StackPanel>
                         <TextBlock Text="Langkah kecil, dampak terkumpul." Style="{StaticResource AnalHeading}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                        <TextBlock Text="Wawasan personal akan ditampilkan setelah data penghematan tersedia."
+                        <TextBlock Text="{Binding InsightMessage}"
                          Style="{StaticResource AnalSmall}" TextWrapping="Wrap" FontSize="11"/>
                     </StackPanel>
                 </Border>
