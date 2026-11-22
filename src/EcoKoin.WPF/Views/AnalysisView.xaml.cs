@@ -56,6 +56,8 @@ namespace EcoKoin.WPF.Views
 
             if (_periodData.TryGetValue(period, out var data) && data.Points.Count > 0)
             {
+                PeriodDuration.Text = $"Durasi tercatat: {data.DurationHours:0.##} jam";
+                PeriodDuration.Visibility = Visibility.Visible;
                 _viewModel.SetData(data.Points, data.EnergySavedKwh,
                     data.Co2SavedKg, data.MoneySavedRp, description,
                     period == 2 ? "bulan" : "hari",
@@ -70,6 +72,7 @@ namespace EcoKoin.WPF.Views
             }
             else
             {
+                PeriodDuration.Visibility = Visibility.Collapsed;
                 _viewModel.ClearData("Data analisis untuk periode ini belum tersedia.");
                 Co2ChartCanvas.Children.Clear();
                 MoneyChartCanvas.Children.Clear();
@@ -85,7 +88,7 @@ namespace EcoKoin.WPF.Views
         // Call from the WPF UI thread (Dispatcher) when real data is available.
         public void UpdatePeriodData(int period, IEnumerable<AnalysisDataPoint> points,
             double energySavedKwh, double co2SavedKg, double moneySavedRp,
-            double powerSaverKwh = 0, double sleepKwh = 0)
+            double powerSaverKwh = 0, double sleepKwh = 0, double durationHours = 0)
         {
             if (period < 0 || period > 2)
                 throw new ArgumentOutOfRangeException(nameof(period));
@@ -95,7 +98,7 @@ namespace EcoKoin.WPF.Views
                 !IsValid(p.MoneySavedRp)))
                 throw new ArgumentException("Titik grafik harus berisi angka valid.", nameof(points));
             if (!IsValid(energySavedKwh) || !IsValid(co2SavedKg) || !IsValid(moneySavedRp) ||
-                !IsValid(powerSaverKwh) || !IsValid(sleepKwh))
+                !IsValid(powerSaverKwh) || !IsValid(sleepKwh) || !IsValid(durationHours))
                 throw new ArgumentException("Nilai KPI harus berupa angka valid.");
 
             _periodData[period] = new AnalysisPeriodData
@@ -105,7 +108,8 @@ namespace EcoKoin.WPF.Views
                 Co2SavedKg = co2SavedKg,
                 MoneySavedRp = moneySavedRp,
                 PowerSaverKwh = powerSaverKwh,
-                SleepKwh = sleepKwh
+                SleepKwh = sleepKwh,
+                DurationHours = durationHours
             };
             if (PeriodComboBox.SelectedIndex == period)
                 ShowSelectedPeriod();
@@ -157,7 +161,7 @@ namespace EcoKoin.WPF.Views
                             ClearPeriodData(period);
                         else
                             UpdatePeriodData(period, data.Points, data.Kwh, data.Co2Kg, data.Rupiah,
-                                data.PowerSaverKwh, data.SleepKwh);
+                                data.PowerSaverKwh, data.SleepKwh, data.DurationHours);
                     }
                     catch (Exception ex) when (ex is ArgumentException)
                     {
@@ -269,6 +273,7 @@ namespace EcoKoin.WPF.Views
             public double MoneySavedRp { get; set; }
             public double PowerSaverKwh { get; set; }
             public double SleepKwh { get; set; }
+            public double DurationHours { get; set; }
         }
     }
 }

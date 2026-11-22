@@ -58,7 +58,7 @@ namespace EcoKoin.WPF.ViewModels
 
     // One analysis period (7 days / this month / this year) ready for AnalysisView.UpdatePeriodData.
     internal sealed record PeriodAnalytics(List<AnalysisDataPoint> Points, double Kwh, double Co2Kg, double Rupiah,
-        double PowerSaverKwh, double SleepKwh);
+        double PowerSaverKwh, double SleepKwh, double DurationHours);
 
     internal static class AnalyticsFormat
     {
@@ -157,7 +157,8 @@ namespace EcoKoin.WPF.ViewModels
                 new CarbonFinancialReport(all.Where(s => s.SchemeId == schemeId), today).TotalKwhSaved;
 
             return new PeriodAnalytics(points, total.TotalKwhSaved, total.TotalCo2Reduced, total.TotalRupiahSaved,
-                SchemeKwh(PowerSessionRecorder.PowerSaverSchemeId), SchemeKwh(PowerSessionRecorder.BalancedSchemeId));
+                SchemeKwh(PowerSessionRecorder.PowerSaverSchemeId), SchemeKwh(PowerSessionRecorder.BalancedSchemeId),
+                all.Sum(session => Math.Max(0, session.DurationHours)));
         }
     }
 }

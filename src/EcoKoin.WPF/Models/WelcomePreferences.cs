@@ -59,7 +59,27 @@ namespace EcoKoin.WPF.Models
             {
                 string temporaryPath = FilePath + ".tmp";
                 File.WriteAllBytes(temporaryPath, data);
-                File.Move(temporaryPath, FilePath, true);
+                try
+                {
+                    File.Move(temporaryPath, FilePath, true);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // Some profiles can write the file but cannot rename or replace it.
+                    using var stream = new FileStream(FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                    var previous = new byte[checked((int)stream.Length)];
+                    stream.ReadExactly(previous);
+
+                    try
+                    {
+                        WritePreferences(stream, data);
+                    }
+                    catch (IOException)
+                    {
+                        WritePreferences(stream, previous);
+                        throw;
+                    }
+                }
             }
             else
             {
@@ -72,5 +92,13 @@ namespace EcoKoin.WPF.Models
         }
 
         public static event Action? PreferencesChanged;
+
+        private static void WritePreferences(FileStream stream, byte[] data)
+        {
+            stream.Position = 0;
+            stream.Write(data);
+            stream.SetLength(data.Length);
+            stream.Flush(flushToDisk: true);
+        }
     }
 }

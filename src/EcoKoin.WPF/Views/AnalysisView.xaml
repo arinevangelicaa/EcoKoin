@@ -91,12 +91,12 @@
                     <ComboBoxItem Content="Tahun ini"/>
                 </ComboBox>
 
-                <TextBlock x:Name="PeriodDescription"
-                   Grid.Column="1"
-                   Text="7 hari terakhir"
-                   HorizontalAlignment="Right"
-                   VerticalAlignment="Center"
-                   Style="{StaticResource AnalSmall}"/>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="PeriodDescription" Text="7 hari terakhir"
+                               TextAlignment="Right" Style="{StaticResource AnalSmall}"/>
+                    <TextBlock x:Name="PeriodDuration" Visibility="Collapsed"
+                               TextAlignment="Right" Style="{StaticResource AnalSmall}"/>
+                </StackPanel>
             </Grid>
 
             <!-- THREE KPI CARDS -->
