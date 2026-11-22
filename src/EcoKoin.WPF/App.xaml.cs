@@ -6,10 +6,15 @@ namespace EcoKoin.WPF
 {
     public partial class App : Application
     {
+        internal SqliteAccountService Accounts { get; } = SqliteAccountService.CreateDefault();
+
         protected override async void OnStartup(
             StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            AuthBridge.LoginHandler ??= Accounts.LoginAsync;
+            AuthBridge.LogoutHandler ??= () => Task.FromResult(true);
 
             Window startWindow;
 

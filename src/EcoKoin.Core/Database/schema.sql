@@ -7,6 +7,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS USERS (
     user_id       TEXT PRIMARY KEY,
     username      TEXT NOT NULL UNIQUE,
+    display_name  TEXT,
     password_hash TEXT NOT NULL,
     total_ecokoin INTEGER NOT NULL DEFAULT 0 CHECK (total_ecokoin >= 0),
     join_date     TEXT NOT NULL

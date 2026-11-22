@@ -176,6 +176,12 @@ namespace EcoKoin.WPF.Views
                     return;
                 }
 
+                if (!IsLoaded)
+                {
+                    await AuthBridge.LogoutAsync();
+                    return;
+                }
+
                 if (!WelcomePreferencesStore.Load()
                         .HasCompletedOnboarding)
                 {
@@ -186,6 +192,7 @@ namespace EcoKoin.WPF.Views
 
                     if (welcome.ShowDialog() != true)
                     {
+                        await AuthBridge.LogoutAsync();
                         ValidationMessage.Text =
                             "Selesaikan pengaturan awal untuk melanjutkan.";
                         return;
@@ -205,7 +212,8 @@ namespace EcoKoin.WPF.Views
             }
             catch (Exception ex)
             {
-                ValidationMessage.Text = ex.Message;
+                System.Diagnostics.Trace.TraceError("EcoKoin login failed: {0}", ex.GetType().Name);
+                ValidationMessage.Text = "Tidak bisa masuk. Coba lagi dan pastikan folder data EcoKoin dapat diakses.";
             }
             finally
             {
@@ -222,7 +230,18 @@ namespace EcoKoin.WPF.Views
                 Owner = this
             };
 
-            register.ShowDialog();
+            if (register.ShowDialog() == true)
+            {
+                EmailInput.Text = register.RegisteredEmail;
+                ValidationMessage.Visibility = Visibility.Visible;
+                ValidationMessage.Text = "Akun berhasil dibuat. Masukkan kata sandi untuk masuk.";
+                PasswordInput.Clear();
+                PasswordVisible.Clear();
+                if (_passwordShown)
+                    PasswordVisible.Focus();
+                else
+                    PasswordInput.Focus();
+            }
             Activate();
         }
 

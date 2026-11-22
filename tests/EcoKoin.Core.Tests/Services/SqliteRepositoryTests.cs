@@ -53,6 +53,34 @@ public class SqliteRepositoryTests : IDisposable
         Assert.Equal(80, schemes[1].CpuMaxPerformance);
     }
 
+    [Fact]
+    public void InitializeDatabase_AddsDisplayNameToExistingDatabaseWithoutLosingBalance()
+    {
+        var user = User.Register("legacy@example.test", "test-password");
+        user.AddEcoKoin(75);
+        Repo.SaveUser(user);
+
+        using (var connection = _db.OpenRaw())
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "ALTER TABLE USERS DROP COLUMN display_name;";
+            command.ExecuteNonQuery();
+        }
+
+        Repo.InitializeDatabase();
+        Repo.InitializeDatabase();
+
+        var existing = Repo.GetUserByUsername(user.Username);
+        Assert.NotNull(existing);
+        Assert.True(existing.Login(user.Username, "test-password"));
+        Assert.Equal(75, existing.TotalEcoKoin);
+        Assert.Null(existing.DisplayName);
+
+        var registered = User.Register("new@example.test", "test-password", displayName: "Nama Tampilan");
+        Repo.SaveUser(registered);
+        Assert.Equal("Nama Tampilan", Repo.GetUserByUsername(registered.Username)!.DisplayName);
+    }
+
     // ---- users ---------------------------------------------------------------------------
 
     [Fact]

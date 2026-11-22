@@ -31,11 +31,23 @@ namespace EcoKoin.Services
             string seedSql = File.ReadAllText(Path.Combine(dbDir, "seed.sql"));
 
             using var connection = OpenConnection();
+            using var tx = connection.BeginTransaction();
             using var command = connection.CreateCommand();
+            command.Transaction = tx;
             command.CommandText = schemaSql;
             command.ExecuteNonQuery();
+
+            // Databases created before WPF account registration have no display_name column.
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('USERS') WHERE name = 'display_name';";
+            if ((long)command.ExecuteScalar()! == 0)
+            {
+                command.CommandText = "ALTER TABLE USERS ADD COLUMN display_name TEXT;";
+                command.ExecuteNonQuery();
+            }
+
             command.CommandText = seedSql;
             command.ExecuteNonQuery();
+            tx.Commit();
         }
 
         /// <summary>
@@ -51,18 +63,20 @@ namespace EcoKoin.Services
             {
                 cmd.Transaction = tx;
                 cmd.CommandText = @"
-                    INSERT INTO USERS (user_id, username, password_hash, total_ecokoin, join_date)
-                    VALUES ($id, $username, $hash, $coins, $join)
+                    INSERT INTO USERS (user_id, username, password_hash, total_ecokoin, join_date, display_name)
+                    VALUES ($id, $username, $hash, $coins, $join, $displayName)
                     ON CONFLICT(user_id) DO UPDATE SET
                         username = excluded.username,
                         password_hash = excluded.password_hash,
                         total_ecokoin = excluded.total_ecokoin,
-                        join_date = excluded.join_date;";
+                        join_date = excluded.join_date,
+                        display_name = COALESCE(excluded.display_name, USERS.display_name);";
                 cmd.Parameters.AddWithValue("$id", user.UserId);
                 cmd.Parameters.AddWithValue("$username", user.Username);
                 cmd.Parameters.AddWithValue("$hash", user.PasswordHash);
                 cmd.Parameters.AddWithValue("$coins", user.TotalEcoKoin);
                 cmd.Parameters.AddWithValue("$join", FormatDateTime(user.JoinDate));
+                cmd.Parameters.AddWithValue("$displayName", (object?)user.DisplayName ?? DBNull.Value);
                 cmd.ExecuteNonQuery();
             }
 
@@ -84,7 +98,7 @@ namespace EcoKoin.Services
             User user;
             using (var cmd = connection.CreateCommand())
             {
-                cmd.CommandText = @"SELECT user_id, username, password_hash, total_ecokoin, join_date
+                cmd.CommandText = @"SELECT user_id, username, password_hash, total_ecokoin, join_date, display_name
                                     FROM USERS WHERE username = $username;";
                 cmd.Parameters.AddWithValue("$username", u);
                 using var reader = cmd.ExecuteReader();
@@ -96,7 +110,8 @@ namespace EcoKoin.Services
                     reader.GetString(1),
                     reader.GetString(2),
                     reader.GetInt32(3),
-                    ParseDateTime(reader.GetString(4)));
+                    ParseDateTime(reader.GetString(4)),
+                    reader.IsDBNull(5) ? null : reader.GetString(5));
             }
 
             using (var cmd = connection.CreateCommand())

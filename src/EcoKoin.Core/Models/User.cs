@@ -14,17 +14,20 @@ namespace EcoKoin.Models
         private const int SaltSize = 16;
         private const int HashSize = 32;
 
-        public User(string userId, string username, string passwordHash, int totalEcoKoin, DateTime joinDate)
+        public User(string userId, string username, string passwordHash, int totalEcoKoin, DateTime joinDate,
+            string? displayName = null)
         {
             UserId = userId;
             Username = username;
             PasswordHash = passwordHash;
             TotalEcoKoin = totalEcoKoin;
             JoinDate = joinDate;
+            DisplayName = displayName;
         }
 
         /// <summary>Creates a new user: new Guid id, PBKDF2 hash of <paramref name="password"/>, JoinDate = clock.Now, 0 koin.</summary>
-        public static User Register(string username, string password, Services.IClock? clock = null)
+        public static User Register(string username, string password, Services.IClock? clock = null,
+            string? displayName = null)
         {
             if (string.IsNullOrWhiteSpace(username))
                 throw new ArgumentException("Username is required.", nameof(username));
@@ -32,11 +35,13 @@ namespace EcoKoin.Models
                 throw new ArgumentException("Password is required.", nameof(password));
 
             clock ??= new Services.SystemClock();
-            return new User(Guid.NewGuid().ToString(), username.Trim(), HashPassword(password), 0, clock.Now);
+            return new User(Guid.NewGuid().ToString(), username.Trim(), HashPassword(password), 0, clock.Now,
+                displayName?.Trim());
         }
 
         public string UserId { get; }
         public string Username { get; }
+        public string? DisplayName { get; }
         public string PasswordHash { get; }
         public DateTime JoinDate { get; }
 
