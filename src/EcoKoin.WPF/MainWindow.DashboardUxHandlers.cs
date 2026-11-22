@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using EcoKoin.WPF.Components;
 using EcoKoin.WPF.Models;
 
@@ -97,6 +97,14 @@ namespace EcoKoin.WPF
             AnalysisContent.Visibility = analysis
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+
+            if (analysis && AuthBridge.CurrentUser?.UserId is string currentUserId && Application.Current is App currentApp)
+            {
+                var repo = currentApp.Accounts.GetRepository();
+                var date = DateOnly.FromDateTime(DateTime.Now);
+                long minutes = repo.GetPowerSaverMinutes(currentUserId, date.AddDays(-6), date);
+                AnalysisContent.ShowWeeklyPowerSaverMinutes(minutes);
+            }
 
             SettingsContent.Visibility = settings
                 ? Visibility.Visible
