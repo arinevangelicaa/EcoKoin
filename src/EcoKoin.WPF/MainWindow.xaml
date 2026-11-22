@@ -6,8 +6,8 @@
         Title="EcoKoin - Dashboard"
         Width="1280"
         Height="720"
-        MinWidth="960"
-        MinHeight="540"
+        MinWidth="800"
+        MinHeight="480"
         WindowStartupLocation="CenterScreen"
         WindowState="Normal"
         ResizeMode="CanResize"
@@ -29,6 +29,7 @@
             <Setter Property="Foreground" Value="{StaticResource Forest}"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
         <Style x:Key="StatValue" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Forest}"/>
@@ -101,10 +102,10 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Grid Background="{StaticResource CanvasBrush}">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="19*" MinWidth="180" MaxWidth="240"/>
+            <ColumnDefinition Width="81*"/>
         </Grid.ColumnDefinitions>
 
         <!-- REUSABLE SIDEBAR -->
@@ -119,9 +120,9 @@
                       VerticalScrollBarVisibility="Auto">
             <Grid MinHeight="{Binding ViewportHeight, ElementName=DashboardContent}">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="62"/>
-                    <RowDefinition Height="110"/>
-                    <RowDefinition Height="205"/>
+                    <RowDefinition Height="Auto" MinHeight="62"/>
+                    <RowDefinition Height="Auto" MinHeight="110"/>
+                    <RowDefinition Height="Auto" MinHeight="205"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
@@ -131,18 +132,19 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal">
+                    <DockPanel>
                         <TextBlock
                         Style="{StaticResource EcoIcon}"
                         Text="{StaticResource IconWeather}"
                         FontSize="30"
                         Foreground="{StaticResource SunOrangeBrush}"
-                        Margin="0,0,15,0"/>
+                        Margin="0,0,15,0"
+                        DockPanel.Dock="Left"/>
                         <StackPanel>
-                            <TextBlock Text="{Binding GreetingDisplay}" FontSize="25" FontWeight="Bold" Foreground="{StaticResource Forest}"/>
-                            <TextBlock Text="Pantau efisiensi energi, interaksi EcoPet, dan misi penghematan harian kamu" FontSize="10" Foreground="#303C38" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding GreetingDisplay}" FontSize="25" FontWeight="Bold" Foreground="{StaticResource Forest}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="Pantau efisiensi energi, interaksi EcoPet, dan misi penghematan harian kamu" FontSize="10" Foreground="#303C38" Margin="0,4,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
-                    </StackPanel>
+                    </DockPanel>
                     <components:LocationBadge
                         Grid.Column="1"
                         VerticalAlignment="Center"
@@ -154,29 +156,31 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="0,0,8,0" Padding="12,10" >
                         <StackPanel>
                             <TextBlock Text="TOTAL ECOKOIN" Style="{StaticResource StatLabel}"/>
-                            <TextBlock Text="{Binding TotalKoinDisplay}" Style="{StaticResource StatValue}"/>
-                            <TextBlock Text="{Binding KoinMingguanDisplay}" FontSize="11" Foreground="#2D3834"/>
+                            <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left">
+                                <TextBlock Text="{Binding TotalKoinDisplay}" Style="{StaticResource StatValue}"/>
+                            </Viewbox>
+                            <TextBlock Text="{Binding KoinMingguanDisplay}" FontSize="11" Foreground="#2D3834" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
                     <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="8,0,8,0" Padding="12,10">
                         <StackPanel>
                             <TextBlock Text="CUACA HARI INI" Style="{StaticResource StatLabel}"/>
                             <TextBlock Text="{Binding SuhuDisplay}" Style="{StaticResource StatValue}"/>
-                            <TextBlock Text="{Binding CuacaDisplay}" FontSize="11" Foreground="#2D3834"/>
+                            <TextBlock Text="{Binding CuacaDisplay}" FontSize="11" Foreground="#2D3834" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
                     <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="8,0,8,0" Padding="12,10">
                         <StackPanel>
                             <TextBlock Text="KELEMBAPAN UDARA" Style="{StaticResource StatLabel}"/>
                             <TextBlock Text="{Binding KelembapanDisplay}" Style="{StaticResource StatValue}"/>
-                            <TextBlock Text="{Binding KondisiUdaraDisplay}" FontSize="11" Foreground="#2D3834"/>
+                            <TextBlock Text="{Binding KondisiUdaraDisplay}" FontSize="11" Foreground="#2D3834" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
                     <Border Background="{StaticResource Panel}" CornerRadius="24" Margin="8,0,0,0" Padding="12,10">
                         <StackPanel>
                             <TextBlock Text="STATUS DAYA" Style="{StaticResource StatLabel}"/>
                             <TextBlock Text="{Binding BateraiDisplay}" Style="{StaticResource StatValue}"/>
-                            <TextBlock Text="{Binding StatusDayaDisplay}" FontSize="11" Foreground="#2D3834"/>
+                            <TextBlock Text="{Binding StatusDayaDisplay}" FontSize="11" Foreground="#2D3834" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
                 </UniformGrid>
@@ -251,7 +255,7 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <TextBlock Text="{Binding RekomendasiSleepDisplay}" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding AlasanRekomendasiSleepDisplay}" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,2,6,0"/>
+                                        <TextBlock Text="{Binding AlasanRekomendasiSleepDisplay}" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,2,6,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"
                                             Click="ApplySleep_Click"/>
@@ -344,7 +348,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Aktifkan sleep saat ditinggal" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10"/>
+                                        <TextBlock Text="Aktifkan sleep saat ditinggal" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
                                         <TextBlock Text="Selesai • siap diklaim" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
                                     </StackPanel>
                                     <Button Grid.Column="1" Content="Klaim +30" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
@@ -357,7 +361,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Power saver selama 4 jam" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10"/>
+                                        <TextBlock Text="Power saver selama 4 jam" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
                                         <TextBlock Text="Dalam proses • target 4 jam" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
                                     </StackPanel>
                                     <Border Grid.Column="1" BorderBrush="{StaticResource Muted}" BorderThickness="1" CornerRadius="8" Background="#E6F1EE" Padding="12,5" VerticalAlignment="Center">
@@ -372,7 +376,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Terapkan 1 rekomendasi cuaca" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10"/>
+                                        <TextBlock Text="Terapkan 1 rekomendasi cuaca" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
                                         <TextBlock Text="Selesai • siap diklaim" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
                                     </StackPanel>
                                     <Button Grid.Column="1" Content="Klaim +15" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
@@ -388,7 +392,7 @@
         <views:QuestRewardView x:Name="QuestRewardContent"
                                Grid.Column="1"
                                Visibility="Collapsed"/>
-        <!-- ANALISIS: shares the same sidebar, compact screen without scrolling -->
+        <!-- ANALISIS -->
         <views:AnalysisView x:Name="AnalysisContent"
                             Grid.Column="1"
                             Visibility="Collapsed"/>

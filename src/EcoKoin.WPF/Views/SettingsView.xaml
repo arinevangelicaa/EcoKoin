@@ -127,12 +127,10 @@
         </Style>
     </UserControl.Resources>
 
-    <!-- Compact desktop: four settings panels, always visible without ScrollViewer -->
     <Grid Margin="18,12,18,12" ClipToBounds="True">
         <Grid.RowDefinitions>
             <RowDefinition Height="62"/>
-            <RowDefinition Height="1.03*"/>
-            <RowDefinition Height="1.17*"/>
+            <RowDefinition Height="*"/>
             <RowDefinition Height="52"/>
         </Grid.RowDefinitions>
 
@@ -153,256 +151,279 @@
             HorizontalAlignment="Right"/>
         </Grid>
 
-        <!-- Top row -->
-        <Grid Grid.Row="1" Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <ScrollViewer x:Name="SettingsScroll"
+                      Grid.Row="1"
+                      Background="Transparent"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <Grid MinHeight="{Binding ViewportHeight, ElementName=SettingsScroll}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1.03*"/>
+                    <RowDefinition Height="1.17*"/>
+                </Grid.RowDefinitions>
 
-            <!-- ENERGY -->
-            <Border Grid.Column="0" Style="{StaticResource SetPanel}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="28"/>
-                        <RowDefinition Height="35"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="1"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="42"/>
-                    </Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center">
-                        <TextBlock Text="{StaticResource IconPower}" Style="{StaticResource EcoIcon}" FontSize="18" Foreground="{StaticResource SetOrange}" Margin="0,0,9,0"/>
-                        <TextBlock Text="Hemat daya" Style="{StaticResource SetHeading}" FontSize="15"/>
-                    </StackPanel>
-                    <TextBlock Grid.Row="1" Text="Kurangi energi terbuang saat bekerja atau meninggalkan PC."
-                               Style="{StaticResource SetCaption}" VerticalAlignment="Center"/>
-                    <Grid Grid.Row="2" Margin="0,4,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="145"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Profil hemat daya" Style="{StaticResource SetHeading}" FontSize="12"/>
-                            <TextBlock Text="Profil untuk penggunaan harian." Style="{StaticResource SetCaption}" Margin="0,3,5,0"/>
-                        </StackPanel>
-                        <ComboBox x:Name="PowerProfileBox" Grid.Column="1" Style="{StaticResource SetCombo}" SelectedIndex="1">
-                            <ComboBoxItem Content="Seimbang"/>
-                            <ComboBoxItem Content="Hemat daya"/>
-                            <ComboBoxItem Content="Performa"/>
-                        </ComboBox>
-                    </Grid>
-                    <Border Grid.Row="3" Background="#294C3E" Opacity="0.13"/>
-                    <Grid Grid.Row="4" Margin="0,4,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="145"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Sleep saat idle" Style="{StaticResource SetHeading}" FontSize="12"/>
-                            <TextBlock Text="Saat PC tidak digunakan selama:" Style="{StaticResource SetCaption}" Margin="0,3,5,0"/>
-                        </StackPanel>
-                        <ComboBox x:Name="SleepTimeBox" Grid.Column="1" Style="{StaticResource SetCombo}" SelectedIndex="1">
-                            <ComboBoxItem Content="2 menit"/>
-                            <ComboBoxItem Content="5 menit"/>
-                            <ComboBoxItem Content="10 menit"/>
-                            <ComboBoxItem Content="15 menit"/>
-                            <ComboBoxItem Content="Tidak pernah"/>
-                        </ComboBox>
-                    </Grid>
-                    <Border Grid.Row="5" Background="{StaticResource SetMint}" CornerRadius="11" Padding="10,8" Margin="0,4,0,0">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="{StaticResource IconReport}" Style="{StaticResource EcoIcon}" FontSize="17" Foreground="{StaticResource SetForest}" Margin="0,0,9,0"/>
-                            <TextBlock Text="Kebiasaan kecil membantu mengumpulkan EcoKoin."
-                                       Style="{StaticResource SetCaption}" Foreground="{StaticResource SetForest}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </Border>
+                <!-- Top row -->
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-            <!-- WEATHER -->
-            <Border Grid.Column="2" Style="{StaticResource SetPanel}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="28"/>
-                        <RowDefinition Height="35"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="88"/>
-                        <RowDefinition Height="28"/>
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="0" VerticalAlignment="Center">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="{StaticResource IconPreference}" Style="{StaticResource EcoIcon}" Foreground="{StaticResource SetOrange}" FontSize="18" Margin="0,0,9,0"/>
-                            <TextBlock Text="Adaptif cuaca" Style="{StaticResource SetHeading}" FontSize="15"/>
-                        </StackPanel>
-                        <ToggleButton x:Name="WeatherToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
-                    </Grid>
-                    <TextBlock Grid.Row="1" Text="Dapatkan saran hemat energi sesuai cuaca di lokasimu."
-                               Style="{StaticResource SetCaption}" VerticalAlignment="Center"/>
-                    <Grid Grid.Row="2" Margin="0,4,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0"
-                                   Text="Lokasi cuaca"
-                                   Style="{StaticResource SetHeading}"
-                                   FontSize="12"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,12,0"/>
-                        <Grid Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="8"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Path Grid.Column="0"
-                                  Width="14" Height="17"
-                                  Stretch="Uniform"
-                                  Fill="{StaticResource SetForest}"
-                                  VerticalAlignment="Center"
-                                  Data="M12,2 C8.13,2 5,5.13 5,9 C5,14.25 12,22 12,22 C12,22 19,14.25 19,9 C19,5.13 15.87,2 12,2 Z M12,12 A3,3 0 1 1 12,6 A3,3 0 1 1 12,12 Z"/>
-                            <TextBlock x:Name="WeatherLocationText"
-                                       Grid.Column="2"
-                                       Text="Menunggu lokasi perangkat"
-                                       Style="{StaticResource SetHeading}"
-                                       FontSize="12"
-                                       VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis"/>
+                    <!-- ENERGY -->
+                    <Border Grid.Column="0" Style="{StaticResource SetPanel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="28"/>
+                                <RowDefinition Height="Auto" MinHeight="35"/>
+                                <RowDefinition Height="*" MinHeight="46"/>
+                                <RowDefinition Height="1"/>
+                                <RowDefinition Height="*" MinHeight="46"/>
+                                <RowDefinition Height="Auto" MinHeight="42"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center">
+                                <TextBlock Text="{StaticResource IconPower}" Style="{StaticResource EcoIcon}" FontSize="18" Foreground="{StaticResource SetOrange}" Margin="0,0,9,0"/>
+                                <TextBlock Text="Hemat daya" Style="{StaticResource SetHeading}" FontSize="15"/>
+                            </StackPanel>
+                            <TextBlock Grid.Row="1" Text="Kurangi energi terbuang saat bekerja atau meninggalkan PC."
+                                       Style="{StaticResource SetCaption}" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="2" Margin="0,4,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*"/>
+                                    <ColumnDefinition Width="2*" MinWidth="94" MaxWidth="145"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Profil hemat daya" Style="{StaticResource SetHeading}" FontSize="12"/>
+                                    <TextBlock Text="Profil untuk penggunaan harian." Style="{StaticResource SetCaption}" Margin="0,3,5,0"/>
+                                </StackPanel>
+                                <ComboBox x:Name="PowerProfileBox" Grid.Column="1" Style="{StaticResource SetCombo}" SelectedIndex="1">
+                                    <ComboBoxItem Content="Seimbang"/>
+                                    <ComboBoxItem Content="Hemat daya"/>
+                                    <ComboBoxItem Content="Performa"/>
+                                </ComboBox>
+                            </Grid>
+                            <Border Grid.Row="3" Background="#294C3E" Opacity="0.13"/>
+                            <Grid Grid.Row="4" Margin="0,4,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*"/>
+                                    <ColumnDefinition Width="2*" MinWidth="94" MaxWidth="145"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Sleep saat idle" Style="{StaticResource SetHeading}" FontSize="12"/>
+                                    <TextBlock Text="Saat PC tidak digunakan selama:" Style="{StaticResource SetCaption}" Margin="0,3,5,0"/>
+                                </StackPanel>
+                                <ComboBox x:Name="SleepTimeBox" Grid.Column="1" Style="{StaticResource SetCombo}" SelectedIndex="1">
+                                    <ComboBoxItem Content="2 menit"/>
+                                    <ComboBoxItem Content="5 menit"/>
+                                    <ComboBoxItem Content="10 menit"/>
+                                    <ComboBoxItem Content="15 menit"/>
+                                    <ComboBoxItem Content="Tidak pernah"/>
+                                </ComboBox>
+                            </Grid>
+                            <Border Grid.Row="5" Background="{StaticResource SetMint}" CornerRadius="11" Padding="10,8" Margin="0,4,0,0">
+                                <Grid VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{StaticResource IconReport}" Style="{StaticResource EcoIcon}" FontSize="17" Foreground="{StaticResource SetForest}" Margin="0,0,9,0"/>
+                                    <TextBlock Grid.Column="1" Text="Kebiasaan kecil membantu mengumpulkan EcoKoin."
+                                               Style="{StaticResource SetCaption}" Foreground="{StaticResource SetForest}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
                         </Grid>
-                    </Grid>
-                    <Border Grid.Row="3" Background="{StaticResource SetMint}" CornerRadius="14" Padding="12,6" Height="64" VerticalAlignment="Center">
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="CONTOH SAAT MENDUNG / GELAP" Style="{StaticResource SetCaption}" FontSize="10"/>
-                            <TextBlock Text="Turunkan kecerahan ke 40%" Style="{StaticResource SetHeading}" FontSize="13" Margin="0,5,0,2"/>
-                            <TextBlock Text="Hanya rekomendasi. Kecerahan layar tidak diubah otomatis."
-                                       Style="{StaticResource SetCaption}"/>
-                        </StackPanel>
                     </Border>
-                    <TextBlock Grid.Row="4" Text="Rekomendasi berdasarkan data cuaca OpenWeatherMap."
-                               Style="{StaticResource SetCaption}" FontSize="10" VerticalAlignment="Center"/>
-                </Grid>
-            </Border>
-        </Grid>
 
-        <!-- Bottom row -->
-        <Grid Grid.Row="2" Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- ECOPET -->
-            <Border Grid.Column="0" Style="{StaticResource SetPanel}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="26"/>
-                        <RowDefinition Height="104"/>
-                        <RowDefinition Height="1"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center">
-                        <TextBlock Text="{StaticResource IconReport}"
-                                   Style="{StaticResource EcoIcon}"
-                                   FontSize="17"
-                                   Foreground="{StaticResource SetOrange}"
-                                   Margin="0,0,9,0"/>
-                        <TextBlock Text="EcoPet" Style="{StaticResource SetHeading}" FontSize="15"/>
-                    </StackPanel>
-                    <Grid Grid.Row="1" VerticalAlignment="Center">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="76"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Image Source="/Assets/Images/happy.png" Width="72" Height="82" Stretch="Uniform" VerticalAlignment="Center"/>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="7,0,0,0">
-                            <TextBlock Text="Teman kecil, semangat besar." Style="{StaticResource SetHeading}" FontSize="12"/>
-                            <TextBlock Text="Konsisten hemat energi agar EcoPet tetap sehat dan bahagia."
-                                       Style="{StaticResource SetCaption}" Margin="0,4,0,0"/>
-                        </StackPanel>
-                    </Grid>
-                    <Border Grid.Row="2" Background="{StaticResource SetForest}" Opacity="0.13"/>
-                    <Grid Grid.Row="3">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Tampilkan maskot desktop" Style="{StaticResource SetHeading}" FontSize="12"/>
-                            <TextBlock Text="EcoPet menemanimu di desktop." Style="{StaticResource SetCaption}" Margin="0,2,0,0"/>
-                        </StackPanel>
-                        <ToggleButton x:Name="PetDesktopToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
-                    </Grid>
-                    <Grid Grid.Row="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Pengingat merawat EcoPet" Style="{StaticResource SetHeading}" FontSize="12"/>
-                            <TextBlock Text="Ingatkan untuk rutin hemat energi." Style="{StaticResource SetCaption}" Margin="0,2,0,0"/>
-                        </StackPanel>
-                        <ToggleButton x:Name="PetReminderToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
-                    </Grid>
+                    <!-- WEATHER -->
+                    <Border Grid.Column="2" Style="{StaticResource SetPanel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="28"/>
+                                <RowDefinition Height="Auto" MinHeight="35"/>
+                                <RowDefinition Height="*" MinHeight="32"/>
+                                <RowDefinition Height="Auto" MinHeight="88"/>
+                                <RowDefinition Height="Auto" MinHeight="28"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{StaticResource IconPreference}" Style="{StaticResource EcoIcon}" Foreground="{StaticResource SetOrange}" FontSize="18" Margin="0,0,9,0"/>
+                                    <TextBlock Text="Adaptif cuaca" Style="{StaticResource SetHeading}" FontSize="15"/>
+                                </StackPanel>
+                                <ToggleButton x:Name="WeatherToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
+                            </Grid>
+                            <TextBlock Grid.Row="1" Text="Dapatkan saran hemat energi sesuai cuaca di lokasimu."
+                                       Style="{StaticResource SetCaption}" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="2" Margin="0,4,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="Lokasi cuaca"
+                                           Style="{StaticResource SetHeading}"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,12,0"/>
+                                <Grid Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Path Grid.Column="0"
+                                          Width="14" Height="17"
+                                          Stretch="Uniform"
+                                          Fill="{StaticResource SetForest}"
+                                          VerticalAlignment="Center"
+                                          Data="M12,2 C8.13,2 5,5.13 5,9 C5,14.25 12,22 12,22 C12,22 19,14.25 19,9 C19,5.13 15.87,2 12,2 Z M12,12 A3,3 0 1 1 12,6 A3,3 0 1 1 12,12 Z"/>
+                                    <TextBlock x:Name="WeatherLocationText"
+                                               Grid.Column="2"
+                                               Text="Menunggu lokasi perangkat"
+                                               Style="{StaticResource SetHeading}"
+                                               FontSize="12"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                            </Grid>
+                            <Border Grid.Row="3" Background="{StaticResource SetMint}" CornerRadius="14" Padding="12,6"
+                                    MinHeight="64" Margin="0,6" VerticalAlignment="Center">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="CONTOH SAAT MENDUNG / GELAP" Style="{StaticResource SetCaption}" FontSize="10"/>
+                                    <TextBlock Text="Turunkan kecerahan ke 40%" Style="{StaticResource SetHeading}" FontSize="13" Margin="0,5,0,2"/>
+                                    <TextBlock Text="Hanya rekomendasi. Kecerahan layar tidak diubah otomatis."
+                                               Style="{StaticResource SetCaption}"/>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Grid.Row="4" Text="Rekomendasi berdasarkan data cuaca OpenWeatherMap."
+                                       Style="{StaticResource SetCaption}" FontSize="10" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
                 </Grid>
-            </Border>
 
-            <!-- NOTIFICATIONS -->
-            <Border Grid.Column="2" Style="{StaticResource SetPanel}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="27"/>
-                        <RowDefinition Height="31"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="1"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="25"/>
-                    </Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="{StaticResource IconNotification}" Style="{StaticResource EcoIcon}" Foreground="{StaticResource SetOrange}" FontSize="17" Margin="0,0,9,0"/>
-                        <TextBlock Text="Notifikasi" Style="{StaticResource SetHeading}" FontSize="15"/>
-                    </StackPanel>
-                    <TextBlock Grid.Row="1" Text="Tetap semangat menjalankan misi hemat energi." Style="{StaticResource SetCaption}" VerticalAlignment="Center"/>
-                    <Grid Grid.Row="2">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Pengingat misi harian" Style="{StaticResource SetHeading}" FontSize="12"/>
-                            <TextBlock Text="Ingatkan misi yang belum selesai." Style="{StaticResource SetCaption}" Margin="0,2,0,0"/>
-                        </StackPanel>
-                        <ToggleButton x:Name="MissionReminderToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
-                    </Grid>
-                    <Border Grid.Row="3" Background="{StaticResource SetForest}" Opacity="0.13"/>
-                    <Grid Grid.Row="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Reward siap diklaim" Style="{StaticResource SetHeading}" FontSize="12"/>
-                            <TextBlock Text="Beri tahu saat EcoKoin bisa diklaim." Style="{StaticResource SetCaption}" Margin="0,2,0,0"/>
-                        </StackPanel>
-                        <ToggleButton x:Name="ClaimReminderToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
-                    </Grid>
-                    <StackPanel Grid.Row="5" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="{StaticResource IconInfo}" Style="{StaticResource EcoIcon}" FontSize="13" Foreground="{StaticResource SetMuted}" Margin="0,0,7,0"/>
-                        <TextBlock Text="Nonaktifkan kapan saja jika ingin lebih fokus." Style="{StaticResource SetCaption}" FontSize="10"/>
-                    </StackPanel>
+                <!-- Bottom row -->
+                <Grid Grid.Row="1" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- ECOPET -->
+                    <Border Grid.Column="0" Style="{StaticResource SetPanel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="26"/>
+                                <RowDefinition Height="Auto" MinHeight="104"/>
+                                <RowDefinition Height="1"/>
+                                <RowDefinition Height="*" MinHeight="42"/>
+                                <RowDefinition Height="*" MinHeight="42"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center">
+                                <TextBlock Text="{StaticResource IconReport}"
+                                           Style="{StaticResource EcoIcon}"
+                                           FontSize="17"
+                                           Foreground="{StaticResource SetOrange}"
+                                           Margin="0,0,9,0"/>
+                                <TextBlock Text="EcoPet" Style="{StaticResource SetHeading}" FontSize="15"/>
+                            </StackPanel>
+                            <Grid Grid.Row="1" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="76"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Image Source="/Assets/Images/happy.png" Width="72" Height="82" Stretch="Uniform" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="7,0,0,0">
+                                    <TextBlock Text="Teman kecil, semangat besar." Style="{StaticResource SetHeading}" FontSize="12"/>
+                                    <TextBlock Text="Konsisten hemat energi agar EcoPet tetap sehat dan bahagia."
+                                               Style="{StaticResource SetCaption}" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Grid.Row="2" Background="{StaticResource SetForest}" Opacity="0.13"/>
+                            <Grid Grid.Row="3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Tampilkan maskot desktop" Style="{StaticResource SetHeading}" FontSize="12"/>
+                                    <TextBlock Text="EcoPet menemanimu di desktop." Style="{StaticResource SetCaption}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <ToggleButton x:Name="PetDesktopToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
+                            </Grid>
+                            <Grid Grid.Row="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Pengingat merawat EcoPet" Style="{StaticResource SetHeading}" FontSize="12"/>
+                                    <TextBlock Text="Ingatkan untuk rutin hemat energi." Style="{StaticResource SetCaption}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <ToggleButton x:Name="PetReminderToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- NOTIFICATIONS -->
+                    <Border Grid.Column="2" Style="{StaticResource SetPanel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="27"/>
+                                <RowDefinition Height="Auto" MinHeight="31"/>
+                                <RowDefinition Height="*" MinHeight="42"/>
+                                <RowDefinition Height="1"/>
+                                <RowDefinition Height="*" MinHeight="42"/>
+                                <RowDefinition Height="Auto" MinHeight="25"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{StaticResource IconNotification}" Style="{StaticResource EcoIcon}" Foreground="{StaticResource SetOrange}" FontSize="17" Margin="0,0,9,0"/>
+                                <TextBlock Text="Notifikasi" Style="{StaticResource SetHeading}" FontSize="15"/>
+                            </StackPanel>
+                            <TextBlock Grid.Row="1" Text="Tetap semangat menjalankan misi hemat energi." Style="{StaticResource SetCaption}" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Pengingat misi harian" Style="{StaticResource SetHeading}" FontSize="12"/>
+                                    <TextBlock Text="Ingatkan misi yang belum selesai." Style="{StaticResource SetCaption}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <ToggleButton x:Name="MissionReminderToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
+                            </Grid>
+                            <Border Grid.Row="3" Background="{StaticResource SetForest}" Opacity="0.13"/>
+                            <Grid Grid.Row="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Reward siap diklaim" Style="{StaticResource SetHeading}" FontSize="12"/>
+                                    <TextBlock Text="Beri tahu saat EcoKoin bisa diklaim." Style="{StaticResource SetCaption}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <ToggleButton x:Name="ClaimReminderToggle" Grid.Column="1" Style="{StaticResource SetSwitch}" IsChecked="True"/>
+                            </Grid>
+                            <Grid Grid.Row="5" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{StaticResource IconInfo}" Style="{StaticResource EcoIcon}" FontSize="13" Foreground="{StaticResource SetMuted}" Margin="0,0,7,0"/>
+                                <TextBlock Grid.Column="1" Text="Nonaktifkan kapan saja jika ingin lebih fokus." Style="{StaticResource SetCaption}" FontSize="10"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
                 </Grid>
-            </Border>
-        </Grid>
+
+            </Grid>
+        </ScrollViewer>
 
         <!-- FOOTER SAVE & RESET -->
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1"/>
                 <RowDefinition Height="*"/>

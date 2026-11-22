@@ -5,8 +5,9 @@
 
     <Button x:Name="MenuButton"
             Style="{StaticResource SidebarMenuButtonStyle}"
-            Height="52"
-            Margin="0,0,0,8">
+            Height="44"
+            Padding="10,0"
+            Margin="0,0,0,6">
 
         <StackPanel Orientation="Horizontal"
                     VerticalAlignment="Center">
