@@ -14,7 +14,7 @@ namespace EcoKoin.WPF.Models
     {
         public static AuthUser? CurrentUser { get; private set; }
 
-        // Diisi oleh integrasi BE.
+        // Diisi saat aplikasi menyiapkan layanan autentikasi.
         public static Func<Task<AuthUser?>>?
             RestoreSessionHandler
         { get; set; }

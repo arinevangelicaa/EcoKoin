@@ -12,6 +12,8 @@ namespace EcoKoin.WPF.Views
         private bool _confirmationShown;
         private bool _syncingText;
 
+        internal string RegisteredEmail { get; private set; } = "";
+
         public RegisterWindow()
         {
             InitializeComponent();
@@ -91,7 +93,7 @@ namespace EcoKoin.WPF.Views
             if (_confirmationShown) ConfirmVisible.Focus(); else ConfirmInput.Focus();
         }
 
-        private void RegisterButton_Click(object sender, RoutedEventArgs e)
+        private async void RegisterButton_Click(object sender, RoutedEventArgs e)
         {
             var name = NameInput.Text.Trim();
             var email = EmailInput.Text.Trim();
@@ -125,9 +127,31 @@ namespace EcoKoin.WPF.Views
                 return;
             }
 
-            // Frontend-only: never claim an account was created without a registration API.
-            ValidationMessage.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(44, 76, 62));
-            ValidationMessage.Text = "Form sudah valid! Akun belum dibuat karena layanan pendaftaran belum terhubung ke backend.";
+            RegisterButton.IsEnabled = false;
+            ValidationMessage.Text = "Sedang menyimpan akun...";
+            try
+            {
+                var accounts = ((App)Application.Current).Accounts;
+                if (!await accounts.RegisterAsync(name, email, password))
+                {
+                    ValidationMessage.Text = "Email ini sudah terdaftar. Gunakan email lain atau masuk.";
+                    EmailInput.Focus();
+                    return;
+                }
+
+                RegisteredEmail = email;
+                if (IsLoaded)
+                    DialogResult = true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceError("EcoKoin registration failed: {0}", ex.GetType().Name);
+                ValidationMessage.Text = "Akun belum dapat disimpan. Coba lagi dan pastikan folder data EcoKoin dapat diakses.";
+            }
+            finally
+            {
+                RegisterButton.IsEnabled = true;
+            }
         }
 
         private void OpenLogin_Click(object sender, RoutedEventArgs e)
