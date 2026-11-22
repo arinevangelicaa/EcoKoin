@@ -56,5 +56,6 @@ CREATE INDEX IF NOT EXISTS idx_quests_user_date    ON DAILY_QUESTS(user_id, ques
 
 CREATE TABLE IF NOT EXISTS POWER_SAVER_PROGRESS (
     quest_id TEXT PRIMARY KEY REFERENCES DAILY_QUESTS(quest_id) ON DELETE CASCADE,
-    last_sample_minute INTEGER NOT NULL
+    last_sample_minute INTEGER NOT NULL,
+    tracked_minutes INTEGER
 );
