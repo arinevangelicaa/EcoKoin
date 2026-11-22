@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -13,6 +13,7 @@ namespace EcoKoin.WPF.Views
     public partial class AnalysisView : UserControl
     {
         private readonly AnalysisViewModel _viewModel;
+        private long? _weeklyPowerSaverMinutes;
         private readonly Dictionary<int, AnalysisPeriodData> _periodData =
             new Dictionary<int, AnalysisPeriodData>();
 
@@ -49,9 +50,9 @@ namespace EcoKoin.WPF.Views
                 period == 1 ? "Bulan ini" :
                 period == 2 ? "Tahun ini" : "Pilih periode";
             PeriodDescription.Text = description;
+            RefreshPowerSaverDuration();
 
-            AnalysisPeriodData data;
-            if (_periodData.TryGetValue(period, out data) && data.Points.Count > 0)
+            if (_periodData.TryGetValue(period, out var data) && data?.Points.Count > 0)
             {
                 _viewModel.SetData(data.Points, data.EnergySavedKwh,
                     data.Co2SavedKg, data.MoneySavedRp, description);
@@ -74,6 +75,20 @@ namespace EcoKoin.WPF.Views
                 UnavailablePeriodDescription.Text =
                     "Data analisis untuk periode ini belum tersedia.";
             }
+        }
+
+        public void ShowWeeklyPowerSaverMinutes(long minutes)
+        {
+            _weeklyPowerSaverMinutes = minutes;
+            RefreshPowerSaverDuration();
+        }
+
+        private void RefreshPowerSaverDuration()
+        {
+            if (PeriodComboBox.SelectedIndex == 0 && _weeklyPowerSaverMinutes is long minutes)
+                _viewModel.SetPowerSaverDuration(minutes);
+            else
+                _viewModel.ClearPowerSaverDuration();
         }
 
         // FE integration point: caller supplies already-aggregated values.
