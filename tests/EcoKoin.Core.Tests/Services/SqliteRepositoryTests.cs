@@ -81,6 +81,78 @@ public class SqliteRepositoryTests : IDisposable
         Assert.Equal(1L, reopened.GetPowerSaverMinutes(user.UserId, Today.AddDays(-10), Today));
     }
 
+    [Fact]
+    public void PowerSaverFlow_ProgressToClaimToPersistedBalance_VerifiesFullLifecycle()
+    {
+        // 1. Akun baru dengan saldo 0
+        var user = NewUser("u_demo", "demouser", coins: 0);
+        Repo.SaveUser(user);
+
+        var date = Today;
+        var quests = Repo.EnsureDailyQuests(user.UserId, date);
+        var powerQuest = quests.OfType<PowerSaverQuest>().Single();
+
+        Assert.Equal(0, powerQuest.CurrentProgress);
+        Assert.Equal(240, powerQuest.TargetValue);
+        Assert.Equal(20, powerQuest.RewardCoin);
+        Assert.False(powerQuest.IsClaimed);
+        Assert.False(powerQuest.CheckCompletion());
+        Assert.Equal(0L, Repo.GetPowerSaverMinutes(user.UserId, date.AddDays(-6), date));
+
+        // 2. Simulasi penambahan menit bertahap hingga 239 menit
+        for (int m = 1; m <= 239; m++)
+        {
+            Repo.RecordPowerSaverMinute(user.UserId, powerQuest.QuestId, date, m);
+        }
+
+        powerQuest = Repo.EnsureDailyQuests(user.UserId, date).OfType<PowerSaverQuest>().Single();
+        Assert.Equal(239, powerQuest.CurrentProgress);
+        Assert.False(powerQuest.CheckCompletion());
+        Assert.False(Repo.TryClaimPowerSaverQuest(user.UserId, powerQuest.QuestId, date));
+        Assert.Equal(0, Repo.GetUserByUsername(user.Username)!.TotalEcoKoin);
+        Assert.Equal(239L, Repo.GetPowerSaverMinutes(user.UserId, date.AddDays(-6), date));
+
+        // 3. Menit ke-240 tercapai (target selesai)
+        Repo.RecordPowerSaverMinute(user.UserId, powerQuest.QuestId, date, 240);
+        powerQuest = Repo.EnsureDailyQuests(user.UserId, date).OfType<PowerSaverQuest>().Single();
+        Assert.Equal(240, powerQuest.CurrentProgress);
+        Assert.True(powerQuest.CheckCompletion());
+
+        // 4. Klaim reward dijalankan
+        bool claimSuccess = Repo.TryClaimPowerSaverQuest(user.UserId, powerQuest.QuestId, date);
+        Assert.True(claimSuccess);
+
+        // Saldo bertambah +20 koin dan quest tercatat diklaim
+        var userAfterClaim = Repo.GetUserByUsername(user.Username)!;
+        Assert.Equal(20, userAfterClaim.TotalEcoKoin);
+        powerQuest = Repo.EnsureDailyQuests(user.UserId, date).OfType<PowerSaverQuest>().Single();
+        Assert.True(powerQuest.IsClaimed);
+
+        // 5. Klaim ganda dicegah
+        Assert.False(Repo.TryClaimPowerSaverQuest(user.UserId, powerQuest.QuestId, date));
+        Assert.Equal(20, Repo.GetUserByUsername(user.Username)!.TotalEcoKoin);
+
+        // 6. Penggunaan terus berlanjut setelah klaim (melebihi 240 menit)
+        Repo.RecordPowerSaverMinute(user.UserId, powerQuest.QuestId, date, 241);
+        Repo.RecordPowerSaverMinute(user.UserId, powerQuest.QuestId, date, 242);
+
+        // Quest tetap capped di 240, tetapi Analisis melacak durasi aktual 242 menit
+        powerQuest = Repo.EnsureDailyQuests(user.UserId, date).OfType<PowerSaverQuest>().Single();
+        Assert.Equal(240, powerQuest.CurrentProgress);
+        Assert.Equal(242L, Repo.GetPowerSaverMinutes(user.UserId, date.AddDays(-6), date));
+
+        // 7. Aplikasi ditutup dan dibuka kembali (koneksi baru)
+        var appReopen = new SqliteRepository(_db.ConnectionString);
+        var reloadedUser = appReopen.GetUserByUsername(user.Username)!;
+        var reloadedQuest = appReopen.EnsureDailyQuests(user.UserId, date).OfType<PowerSaverQuest>().Single();
+
+        Assert.Equal(20, reloadedUser.TotalEcoKoin);
+        Assert.True(reloadedQuest.IsClaimed);
+        Assert.Equal(240, reloadedQuest.CurrentProgress);
+        Assert.Equal(242L, appReopen.GetPowerSaverMinutes(user.UserId, date.AddDays(-6), date));
+        Assert.False(appReopen.TryClaimPowerSaverQuest(user.UserId, powerQuest.QuestId, date));
+    }
+
     // ---- schema / init -------------------------------------------------------------------
 
     [Fact]
