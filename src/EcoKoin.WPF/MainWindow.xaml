@@ -146,6 +146,7 @@
                         </StackPanel>
                     </DockPanel>
                     <components:LocationBadge x:Name="DashboardLocationBadge"
+                        UseSavedLocation="False"
                         Grid.Column="1"
                         VerticalAlignment="Center"
                         HorizontalAlignment="Right"/>
