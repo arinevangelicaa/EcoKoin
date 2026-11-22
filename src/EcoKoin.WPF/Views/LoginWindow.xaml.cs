@@ -225,7 +225,7 @@ namespace EcoKoin.WPF.Views
             object sender,
             RoutedEventArgs e)
         {
-            var register = new RegisterWindow { OpenedFromLogin = true };
+            var register = new RegisterWindow();
 
             if (ShowAsPage(register) == true)
             {

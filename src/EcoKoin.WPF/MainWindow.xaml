@@ -200,10 +200,10 @@
                                     <ColumnDefinition Width="118"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Image Grid.Column="0" Source="/Assets/Images/happy.png" Width="112" Height="115" Stretch="Uniform"/>
+                                <Image Grid.Column="0" Source="{Binding PetImageSource}" Width="112" Height="115" Stretch="Uniform"/>
                                 <StackPanel Grid.Column="1" Margin="3,7,0,0">
-                                    <TextBlock Text="Yeay! Kamu sudah menghemat energi hari ini!" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                    <TextBlock Text="Happy &amp; Healthy" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,5,0,5"/>
+                                    <TextBlock Text="{Binding PetMessageDisplay}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Muted}"/>
+                                    <TextBlock Text="{Binding PetStateDisplay}" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,5,0,5"/>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -260,6 +260,7 @@
                                         <TextBlock Text="{Binding AlasanRekomendasiSleepDisplay}" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,2,6,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"
+                                            Visibility="{Binding CanApplySleepRecommendation, Converter={StaticResource BooleanToVisibility}}"
                                             Click="ApplySleep_Click"/>
                                 </Grid>
                             </Border>
@@ -277,7 +278,7 @@
                         <StackPanel>
                             <TextBlock Text="ANALISIS MINGGUAN" Style="{StaticResource SectionTitle}" Margin="0,0,0,7"/>
                             <Grid Margin="0,0,0,6">
-                                <TextBlock Text="Minggu ini" Foreground="{StaticResource Muted}" FontSize="10"/>
+                                <TextBlock Text="{Binding GrafikRentangDisplay}" Foreground="{StaticResource Muted}" FontSize="10"/>
                                 <TextBlock Text="7 hari terakhir" HorizontalAlignment="Right" Foreground="{StaticResource Muted}" FontSize="10"/>
                             </Grid>
                             <UniformGrid Columns="3" Margin="0,0,0,6">
@@ -322,13 +323,13 @@
                                         </Canvas>
                                     </Viewbox>
                                     <UniformGrid Columns="7" Margin="0,0,0,0">
-                                        <TextBlock Text="Sen" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="Sel" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="Rab" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="Kam" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="Jum" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="Sab" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                        <TextBlock Text="Min" FontSize="10" Foreground="{StaticResource Forest}" HorizontalAlignment="Right"/>
+                                        <TextBlock Text="{Binding GrafikLabel0}" FontSize="10" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding GrafikLabel1}" FontSize="10" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding GrafikLabel2}" FontSize="10" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding GrafikLabel3}" FontSize="10" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding GrafikLabel4}" FontSize="10" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding GrafikLabel5}" FontSize="10" Foreground="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding GrafikLabel6}" FontSize="10" Foreground="{StaticResource Forest}" HorizontalAlignment="Right"/>
                                     </UniformGrid>
                                 </StackPanel>
                             </Border>
@@ -350,10 +351,11 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Aktifkan sleep saat ditinggal" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Belum tersedia" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding SleepQuestItem.Title}" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding SleepQuestItem.StatusText}" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Content="+30 Koin" IsEnabled="False" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="{Binding SleepQuestItem.RewardLabel}" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"
+                                            IsEnabled="{Binding SleepQuestItem.CanClaim}" Command="{Binding SleepQuestItem.ClaimCommand}"/>
                                 </Grid>
                             </Border>
                             <Border Background="{StaticResource Mint}" CornerRadius="18" Padding="8,6" Margin="0,0,0,5">
@@ -363,7 +365,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Power saver selama 4 jam" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding PowerSaverTitle}" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding PowerSaverStatus}" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
                                     </StackPanel>
                                     <Button Grid.Column="1" Content="{Binding PowerSaverReward}" Style="{StaticResource OrangeButton}"
@@ -378,10 +380,11 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Terapkan 1 rekomendasi cuaca" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Belum tersedia" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding WeatherQuestItem.Title}" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding WeatherQuestItem.StatusText}" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Content="+15 Koin" IsEnabled="False" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="{Binding WeatherQuestItem.RewardLabel}" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"
+                                            IsEnabled="{Binding WeatherQuestItem.CanClaim}" Command="{Binding WeatherQuestItem.ClaimCommand}"/>
                                 </Grid>
                             </Border>
                             <TextBlock x:Name="QuestDetailLink" Text="Lihat Selengkapnya   ➜" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>
@@ -402,44 +405,5 @@
         <views:SettingsView x:Name="SettingsContent"
                             Grid.Column="1"
                             Visibility="Collapsed"/>
-
-        <!-- FRONTEND DEMO LOGIN: no real authentication or server calls -->
-        <Grid x:Name="LoginOverlay" Grid.ColumnSpan="2" Visibility="Collapsed" Panel.ZIndex="20">
-            <Border Background="#990F211A"/>
-            <Border Background="#F6F8F7" Width="390" Padding="26" CornerRadius="24"
-                    HorizontalAlignment="Center" VerticalAlignment="Center">
-                <StackPanel>
-                    <TextBlock Text="Masuk ke EcoKoin" FontFamily="{StaticResource HeadingFont}"
-                               FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource ForestGreenBrush}"/>
-                    <TextBlock Text="Demo frontend: email dan password belum diverifikasi oleh server."
-                               FontSize="12" Foreground="#668176" TextWrapping="Wrap" Margin="0,6,0,19"/>
-                    <TextBlock Text="Email" Foreground="{StaticResource ForestGreenBrush}" FontSize="13" FontWeight="SemiBold"/>
-                    <TextBox x:Name="LoginEmail" Text="hermione@mail.hogwarts.ac.id" Height="38"
-                             FontSize="13" Padding="8,7" Margin="0,6,0,12"/>
-                    <TextBlock Text="Password" Foreground="{StaticResource ForestGreenBrush}" FontSize="13" FontWeight="SemiBold"/>
-                    <PasswordBox x:Name="LoginPassword" Height="38" FontSize="13" Padding="8,7" Margin="0,6,0,7"/>
-                    <TextBlock x:Name="LoginValidation" Foreground="#B54738" FontSize="11" Margin="0,0,0,8"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Button Content="Batal" Height="40" Margin="0,0,6,0" Cursor="Hand" Click="CancelLogin_Click"/>
-                        <Button Grid.Column="1" Content="Login (Demo)" Height="40" Margin="6,0,0,0"
-                                Background="#D97746" Foreground="White" BorderThickness="0" Cursor="Hand"
-                                Click="SubmitLogin_Click"/>
-                    </Grid>
-                    <!-- Tombol menuju halaman Daftar Akun -->
-                    <Button Content="Belum punya akun? Daftar akun"
-                            Click="OpenRegistration_Click"
-                            Cursor="Hand"
-                            Margin="0,12,0,0"
-                            HorizontalAlignment="Center"
-                            Foreground="#2C4C3E"
-                            Background="Transparent"
-                            BorderThickness="0"/>
-                </StackPanel>
-            </Border>
-        </Grid>
     </Grid>
 </Window>

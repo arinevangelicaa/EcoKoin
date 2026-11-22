@@ -6,59 +6,8 @@ namespace EcoKoin.WPF
 {
     public partial class MainWindow
     {
-        private void ApplyBrightness_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                this,
-                "Pengaturan kecerahan otomatis belum terhubung. "
-                + "Rekomendasi akan diterapkan setelah layanan "
-                + "perangkat tersedia.",
-                "Rekomendasi Cuaca",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
-
-        private void ApplySleep_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                this,
-                "Pengaturan sleep otomatis belum terhubung "
-                + "ke layanan perangkat.",
-                "Rekomendasi Hemat Daya",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
-
-        private void DashboardClaimSleep_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                this,
-                "Klaim koin memerlukan konfirmasi "
-                + "dari layanan misi.",
-                "Misi Harian",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
-
-        private void DashboardClaimWeather_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                this,
-                "Klaim koin memerlukan konfirmasi "
-                + "dari layanan misi.",
-                "Misi Harian",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
-
+        // ApplyBrightness_Click / ApplySleep_Click live in MainWindow.UiFixes.cs; quests are claimed through
+        // QuestItemViewModel.ClaimCommand (MainWindow.Quests.cs).
         private void OpenFullAnalysis_Click(
             object sender,
             RoutedEventArgs e)

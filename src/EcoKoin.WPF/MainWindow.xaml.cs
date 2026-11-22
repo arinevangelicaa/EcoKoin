@@ -45,7 +45,13 @@ namespace EcoKoin.WPF
                 powerStatus.Unregister();
             };
             if (user?.UserId is not null && Application.Current is App app)
+            {
                 InitializePowerSaverQuest(dashboard, user, app.Accounts, powerStatus);
+                InitializeDashboardQuests(dashboard, user, app.Accounts, clock);
+                InitializeDashboardPet(dashboard, user, app.Accounts, clock);
+                InitializeDashboardAnalytics(dashboard, user, app.Accounts, clock);
+                InitializePowerSessions(dashboard, user, app.Accounts, powerStatus, clock);
+            }
 
             DashboardContent.DataContext = dashboard;
             QuestRewardContent.DataContext = dashboard;
@@ -148,27 +154,6 @@ namespace EcoKoin.WPF
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
-        }
-
-        private void CancelLogin_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            LoginPassword.Clear();
-            LoginOverlay.Visibility =
-                Visibility.Collapsed;
-        }
-
-        private void SubmitLogin_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            // Jalur overlay lama tidak digunakan.
-            LoginPassword.Clear();
-            LoginOverlay.Visibility =
-                Visibility.Collapsed;
-
-            ShowFullLogin();
         }
 
         private static T? FindParent<T>(

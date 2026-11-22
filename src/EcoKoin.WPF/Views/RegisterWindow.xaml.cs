@@ -14,9 +14,6 @@ namespace EcoKoin.WPF.Views
 
         internal string RegisteredEmail { get; private set; } = "";
 
-        /// <summary>True when LoginWindow hid itself to show this window; "Masuk" then just closes this window.</summary>
-        internal bool OpenedFromLogin { get; init; }
-
         public RegisterWindow()
         {
             InitializeComponent();
@@ -159,20 +156,7 @@ namespace EcoKoin.WPF.Views
 
         private void OpenLogin_Click(object sender, RoutedEventArgs e)
         {
-            // When opened from the new login page, close register and return to login.
-            if (OpenedFromLogin || Owner is LoginWindow)
-            {
-                Close();
-                return;
-            }
-            // Legacy path when registration was opened by the old MainWindow overlay.
-            var dashboard = Owner as MainWindow
-                            ?? Application.Current.Windows.OfType<MainWindow>().FirstOrDefault()
-                            ?? new MainWindow();
-            Application.Current.MainWindow = dashboard;
-            if (!dashboard.IsVisible) dashboard.Show();
-            dashboard.Activate();
-            dashboard.ShowLoginOverlay();
+            // Registration is only opened from the login page, which shows itself again when this closes.
             Close();
         }
     }

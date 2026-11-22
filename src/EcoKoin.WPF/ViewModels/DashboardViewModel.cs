@@ -10,8 +10,9 @@ using EcoKoin.WPF.Models;
 
 namespace EcoKoin.WPF.ViewModels
 {
-    // Dashboard presentation. Power and quest values still use demo data.
-    public sealed class DashboardViewModel : INotifyPropertyChanged
+    // Dashboard presentation. Values are filled from the database / Windows by the feature files
+    // (MainWindow.Quests/Pet/Analytics/PowerSessions); the defaults below are only loading placeholders.
+    public sealed partial class DashboardViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         private static readonly CultureInfo IndonesianCulture = CultureInfo.GetCultureInfo("id-ID");
@@ -24,25 +25,25 @@ namespace EcoKoin.WPF.ViewModels
         private string _kondisiUdaraDisplay = "";
         private string _bateraiDisplay = "—";
         private string _statusDayaDisplay = "Memuat status daya…";
-        private string _energiDisplay = "2.5 kWh";
-        private string _emisiDisplay = "1.2 kg";
-        private string _biayaDisplay = "Rp12.500";
+        private string _energiDisplay = "—";
+        private string _emisiDisplay = "—";
+        private string _biayaDisplay = "—";
         private string _rekomendasiCuacaDisplay = "Memuat cuaca…";
         private string _alasanRekomendasiCuacaDisplay = "";
         private bool _canApplyWeatherRecommendation;
         private bool _weatherRecommendationsEnabled = true;
-        private string _rekomendasiSleepDisplay = "Sleep setelah 5 menit idle";
-        private string _alasanRekomendasiSleepDisplay = "Kamu sering meninggalkan PC";
-        private int _level = 5;
-        private int _xp = 350;
-        private int _xpTarget = 500;
+        private string _rekomendasiSleepDisplay = "Memuat rekomendasi…";
+        private string _alasanRekomendasiSleepDisplay = "";
+        private int _level = 1;
+        private int _xp;
+        private int _xpTarget = EcoKoin.Models.User.XpPerLevel;
         private int _misiSelesai;
-        private int _jumlahMisi = 1;
+        private int _jumlahMisi;
         private string _powerSaverStatus = "Memuat progres misi…";
-        private string _powerSaverReward = "Klaim +20";
+        private string _powerSaverReward = "—";
         private bool _canClaimPowerSaver;
-        private string _grafikStatusDisplay = "Ilustrasi";
-        private double[] _grafikMingguan = { 0.15, 0.25, 0.33, 0.43, 0.52, 0.60, 0.72 };
+        private string _grafikStatusDisplay = "Memuat data…";
+        private double[] _grafikMingguan = new double[7]; // flat baseline until the first load
 
         public DashboardViewModel(AuthUser? user)
         {
@@ -137,8 +138,12 @@ namespace EcoKoin.WPF.ViewModels
 
         public int MisiSelesai { get => _misiSelesai; set { if (SetProperty(ref _misiSelesai, Math.Max(0, value))) NotifyMisi(); } }
         public int JumlahMisi { get => _jumlahMisi; set { if (SetProperty(ref _jumlahMisi, Math.Max(0, value))) NotifyMisi(); } }
-        public string MisiSelesaiDisplay => $"{Math.Min(MisiSelesai, JumlahMisi)} dari {JumlahMisi} misi selesai";
-        public string MisiPersenDisplay => $"{Math.Round(MisiProgress, MidpointRounding.AwayFromZero):0}%";
+        public string MisiSelesaiDisplay => JumlahMisi == 0
+            ? "Misi belum dimuat"
+            : $"{Math.Min(MisiSelesai, JumlahMisi)} dari {JumlahMisi} misi selesai";
+        public string MisiPersenDisplay => JumlahMisi == 0
+            ? "—"
+            : $"{Math.Round(MisiProgress, MidpointRounding.AwayFromZero):0}%";
         public double MisiProgress => JumlahMisi == 0 ? 0 : Math.Clamp((double)MisiSelesai / JumlahMisi * 100, 0, 100);
 
         public ICommand? ClaimPowerSaverCommand { get; internal set; }
@@ -148,11 +153,11 @@ namespace EcoKoin.WPF.ViewModels
 
         internal void ShowPowerSaverQuest(PowerSaverQuest quest, int? balance, bool? isActive)
         {
-            if (balance is int coins)
-                TotalKoinDisplay = $"{coins.ToString("N0", IndonesianCulture)} Koin";
-
+            // The balance is deliberately NOT applied here: this result was read on the tracker's own schedule and can
+            // be older than a claim that just happened, which would flip the shown balance back. The quest list owns the
+            // balance (ShowQuests) and is reloaded through NotifyDataChanged when the tracker's claim goes through.
             bool complete = quest.CheckCompletion();
-            MisiSelesai = complete ? 1 : 0;
+            ApplyPowerSaverToSummary(quest);
             PowerSaverReward = quest.IsClaimed ? "Diklaim" : $"Klaim +{quest.RewardCoin}";
             PowerSaverStatus = quest.IsClaimed ? "Hadiah sudah diklaim."
                 : complete ? "Selesai. Hadiah siap diklaim."
@@ -165,7 +170,6 @@ namespace EcoKoin.WPF.ViewModels
         }
 
         // Chart takes exactly seven non-negative values, oldest to newest.
-        // The 0..1 values above are only a demo visual shape.
         public void SetGrafikMingguan(IReadOnlyList<double> values, bool isDemo = false)
         {
             if (values is null || values.Count != 7)
@@ -178,7 +182,7 @@ namespace EcoKoin.WPF.ViewModels
                 next[i] = values[i];
             }
             _grafikMingguan = next;
-            GrafikStatusDisplay = isDemo ? "Ilustrasi" : "Data mingguan";
+            GrafikStatusDisplay = isDemo ? "Ilustrasi" : "Estimasi mingguan";
             Notify(nameof(GrafikPoints));
             for (int i = 0; i < 7; i++) Notify($"GrafikDot{i}Top");
         }
