@@ -39,7 +39,7 @@
 
             <TextBlock
                 x:Name="LocationText"
-                Text="Menunggu lokasi perangkat"
+                Text="Lokasi cuaca"
                 ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
                 MaxWidth="150"
                 TextTrimming="CharacterEllipsis"
