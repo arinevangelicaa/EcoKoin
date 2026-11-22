@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Windows.Threading;
@@ -16,7 +18,7 @@ namespace EcoKoin.WPF
             DashboardViewModel dashboard, HttpClient httpClient, IClock clock, Func<WelcomePreferences> loadPreferences)
         {
             var timer = new DispatcherTimer { Interval = WeatherRefreshInterval };
-            string apiKey = Environment.GetEnvironmentVariable("ECOKOIN_WEATHER_API_KEY")?.Trim() ?? "";
+            string apiKey = LoadWeatherApiKey();
             string? currentCity = null;
             WeatherService? service = null;
             CancellationTokenSource? pendingRequest = null;
@@ -101,6 +103,40 @@ namespace EcoKoin.WPF
                 pendingRequest?.Cancel();
                 WelcomePreferencesStore.PreferencesChanged -= ApplyWeatherPreferences;
             };
+        }
+
+        private static string LoadWeatherApiKey()
+        {
+            string envKey = Environment.GetEnvironmentVariable("ECOKOIN_WEATHER_API_KEY")?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(envKey))
+                return envKey;
+
+            try
+            {
+                string localFile = Path.Combine(AppContext.BaseDirectory, "weather-api-key.txt");
+                if (File.Exists(localFile))
+                {
+                    string text = File.ReadAllText(localFile).Trim();
+                    if (!string.IsNullOrEmpty(text))
+                        return text;
+                }
+
+                string appDataFile = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "EcoKoin", "weather-api-key.txt");
+                if (File.Exists(appDataFile))
+                {
+                    string text = File.ReadAllText(appDataFile).Trim();
+                    if (!string.IsNullOrEmpty(text))
+                        return text;
+                }
+            }
+            catch
+            {
+                // Ignore read errors and fall back to empty key.
+            }
+
+            return "";
         }
     }
 }

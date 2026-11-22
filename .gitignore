@@ -3,4 +3,7 @@
 .vs/
 bin/
 obj/
+dist/
+weather-api-key.txt
+*.key
 *.csproj.user
