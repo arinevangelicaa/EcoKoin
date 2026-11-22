@@ -289,6 +289,58 @@ namespace EcoKoin.Services
             return quests;
         }
 
+        public void RecordPowerSaverMinute(string userId, string questId, DateOnly date, long sampleMinute)
+        {
+            using var connection = OpenConnection();
+            using var tx = connection.BeginTransaction();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                INSERT INTO POWER_SAVER_PROGRESS (quest_id, last_sample_minute)
+                SELECT quest_id, $minute FROM DAILY_QUESTS
+                WHERE quest_id = $quest AND user_id = $user AND quest_date = $date
+                  AND quest_type = 'PowerSaver' AND is_claimed = 0 AND current_progress < target_value
+                ON CONFLICT(quest_id) DO UPDATE SET last_sample_minute = excluded.last_sample_minute
+                WHERE excluded.last_sample_minute > POWER_SAVER_PROGRESS.last_sample_minute;";
+            AddPowerSaverParameters(cmd, userId, questId, date);
+            cmd.Parameters.AddWithValue("$minute", sampleMinute);
+            if (cmd.ExecuteNonQuery() == 1)
+            {
+                cmd.CommandText = "UPDATE DAILY_QUESTS SET current_progress = current_progress + 1 WHERE quest_id = $quest;";
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        }
+
+        public bool TryClaimPowerSaverQuest(string userId, string questId, DateOnly date)
+        {
+            using var connection = OpenConnection();
+            using var tx = connection.BeginTransaction();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                UPDATE DAILY_QUESTS SET is_claimed = 1
+                WHERE quest_id = $quest AND user_id = $user AND quest_date = $date
+                  AND quest_type = 'PowerSaver' AND is_claimed = 0 AND current_progress >= target_value
+                RETURNING reward_coin;";
+            AddPowerSaverParameters(cmd, userId, questId, date);
+            if (cmd.ExecuteScalar() is not long reward)
+                return false;
+
+            cmd.CommandText = "UPDATE USERS SET total_ecokoin = total_ecokoin + $reward WHERE user_id = $user;";
+            cmd.Parameters.AddWithValue("$reward", reward);
+            cmd.ExecuteNonQuery();
+            tx.Commit();
+            return true;
+        }
+
+        private static void AddPowerSaverParameters(SqliteCommand cmd, string userId, string questId, DateOnly date)
+        {
+            cmd.Parameters.AddWithValue("$quest", questId);
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$date", date.ToString(DateFormat, CultureInfo.InvariantCulture));
+        }
+
         // ---- helpers -------------------------------------------------------------------------
 
         /// <summary>Opens a connection and enables foreign keys (SQLite default is off, per connection).</summary>

@@ -350,9 +350,9 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <TextBlock Text="Aktifkan sleep saat ditinggal" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Selesai • siap diklaim" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
+                                        <TextBlock Text="Belum tersedia" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Content="Klaim +30" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="+30 Koin" IsEnabled="False" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
                             <Border Background="{StaticResource Mint}" CornerRadius="18" Padding="8,6" Margin="0,0,0,5">
@@ -363,11 +363,11 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <TextBlock Text="Power saver selama 4 jam" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Dalam proses • target 4 jam" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding PowerSaverStatus}" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
                                     </StackPanel>
-                                    <Border Grid.Column="1" BorderBrush="{StaticResource Muted}" BorderThickness="1" CornerRadius="8" Background="#E6F1EE" Padding="12,5" VerticalAlignment="Center">
-                                        <TextBlock Text="+20" Foreground="{StaticResource Muted}"/>
-                                    </Border>
+                                    <Button Grid.Column="1" Content="{Binding PowerSaverReward}" Style="{StaticResource OrangeButton}"
+                                            VerticalAlignment="Center" IsEnabled="{Binding CanClaimPowerSaver}"
+                                            Command="{Binding ClaimPowerSaverCommand}"/>
                                 </Grid>
                             </Border>
                             <Border Background="{StaticResource Mint}" CornerRadius="18" Padding="8,6">
@@ -378,9 +378,9 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <TextBlock Text="Terapkan 1 rekomendasi cuaca" Foreground="{StaticResource Muted}" FontWeight="SemiBold" FontSize="10" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Selesai • siap diklaim" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
+                                        <TextBlock Text="Belum tersedia" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,3,0,0"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Content="Klaim +15" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="+15 Koin" IsEnabled="False" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
                             <TextBlock x:Name="QuestDetailLink" Text="Lihat Selengkapnya   ➜" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>

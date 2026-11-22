@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
+using System.Windows.Input;
 using EcoKoin.Models;
 using EcoKoin.WPF.Models;
 
@@ -21,8 +22,8 @@ namespace EcoKoin.WPF.ViewModels
         private string _cuacaDisplay = "Memuat cuaca…";
         private string _kelembapanDisplay = "—";
         private string _kondisiUdaraDisplay = "";
-        private string _bateraiDisplay = "75%";
-        private string _statusDayaDisplay = "On Battery";
+        private string _bateraiDisplay = "—";
+        private string _statusDayaDisplay = "Memuat status daya…";
         private string _energiDisplay = "2.5 kWh";
         private string _emisiDisplay = "1.2 kg";
         private string _biayaDisplay = "Rp12.500";
@@ -35,8 +36,11 @@ namespace EcoKoin.WPF.ViewModels
         private int _level = 5;
         private int _xp = 350;
         private int _xpTarget = 500;
-        private int _misiSelesai = 2;
-        private int _jumlahMisi = 3;
+        private int _misiSelesai;
+        private int _jumlahMisi = 1;
+        private string _powerSaverStatus = "Memuat progres misi…";
+        private string _powerSaverReward = "Klaim +20";
+        private bool _canClaimPowerSaver;
         private string _grafikStatusDisplay = "Ilustrasi";
         private double[] _grafikMingguan = { 0.15, 0.25, 0.33, 0.43, 0.52, 0.60, 0.72 };
 
@@ -136,6 +140,29 @@ namespace EcoKoin.WPF.ViewModels
         public string MisiSelesaiDisplay => $"{Math.Min(MisiSelesai, JumlahMisi)} dari {JumlahMisi} misi selesai";
         public string MisiPersenDisplay => $"{Math.Round(MisiProgress, MidpointRounding.AwayFromZero):0}%";
         public double MisiProgress => JumlahMisi == 0 ? 0 : Math.Clamp((double)MisiSelesai / JumlahMisi * 100, 0, 100);
+
+        public ICommand? ClaimPowerSaverCommand { get; internal set; }
+        public string PowerSaverStatus { get => _powerSaverStatus; internal set => SetProperty(ref _powerSaverStatus, value); }
+        public string PowerSaverReward { get => _powerSaverReward; private set => SetProperty(ref _powerSaverReward, value); }
+        public bool CanClaimPowerSaver { get => _canClaimPowerSaver; internal set => SetProperty(ref _canClaimPowerSaver, value); }
+
+        internal void ShowPowerSaverQuest(PowerSaverQuest quest, int? balance, bool? isActive)
+        {
+            if (balance is int coins)
+                TotalKoinDisplay = $"{coins.ToString("N0", IndonesianCulture)} Koin";
+
+            bool complete = quest.CheckCompletion();
+            MisiSelesai = complete ? 1 : 0;
+            PowerSaverReward = quest.IsClaimed ? "Diklaim" : $"Klaim +{quest.RewardCoin}";
+            PowerSaverStatus = quest.IsClaimed ? "Hadiah sudah diklaim."
+                : complete ? "Selesai. Hadiah siap diklaim."
+                : $"{quest.CurrentProgress}/{quest.TargetValue} menit. " + (isActive switch
+                {
+                    true => "Power Saver aktif.",
+                    false => "Aktifkan Energy Saver atau plan Power Saver di Windows.",
+                    null => "Status plan daya belum terbaca."
+                });
+        }
 
         // Chart takes exactly seven non-negative values, oldest to newest.
         // The 0..1 values above are only a demo visual shape.
