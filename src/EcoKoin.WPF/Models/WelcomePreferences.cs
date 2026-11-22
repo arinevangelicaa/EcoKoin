@@ -52,10 +52,22 @@ namespace EcoKoin.WPF.Models
         {
             string directory = Path.GetDirectoryName(FilePath)!;
             Directory.CreateDirectory(directory);
-            string temporaryPath = FilePath + ".tmp";
-            File.WriteAllText(temporaryPath, JsonSerializer.Serialize(
-                preferences, new JsonSerializerOptions { WriteIndented = true }));
-            File.Move(temporaryPath, FilePath, true);
+            byte[] data = JsonSerializer.SerializeToUtf8Bytes(
+                preferences, new JsonSerializerOptions { WriteIndented = true });
+
+            if (File.Exists(FilePath))
+            {
+                string temporaryPath = FilePath + ".tmp";
+                File.WriteAllBytes(temporaryPath, data);
+                File.Move(temporaryPath, FilePath, true);
+            }
+            else
+            {
+                // The first save creates the file without requiring permission to rename it.
+                using var stream = new FileStream(FilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                stream.Write(data);
+            }
+
             PreferencesChanged?.Invoke();
         }
 
