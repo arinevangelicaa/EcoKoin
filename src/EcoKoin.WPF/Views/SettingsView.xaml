@@ -293,7 +293,7 @@
                                 <StackPanel VerticalAlignment="Center">
                                     <TextBlock Text="CONTOH SAAT MENDUNG / GELAP" Style="{StaticResource SetCaption}" FontSize="10"/>
                                     <TextBlock Text="Turunkan kecerahan ke 40%" Style="{StaticResource SetHeading}" FontSize="13" Margin="0,5,0,2"/>
-                                    <TextBlock Text="Hanya rekomendasi. Kecerahan layar tidak diubah otomatis."
+                                    <TextBlock Text="Kecerahan dan sleep hanya diubah setelah kamu menekan Terapkan di dashboard dan menyetujui konfirmasi."
                                                Style="{StaticResource SetCaption}"/>
                                 </StackPanel>
                             </Border>

@@ -1,11 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using EcoKoin.WPF.Models;
 using EcoKoin.WPF.ViewModels;
 
 namespace EcoKoin.WPF.Views
@@ -13,7 +15,7 @@ namespace EcoKoin.WPF.Views
     public partial class AnalysisView : UserControl
     {
         private readonly AnalysisViewModel _viewModel;
-        private long? _weeklyPowerSaverMinutes;
+        private int _loadRequest;
         private readonly Dictionary<int, AnalysisPeriodData> _periodData =
             new Dictionary<int, AnalysisPeriodData>();
 
@@ -22,6 +24,7 @@ namespace EcoKoin.WPF.Views
             InitializeComponent();
             _viewModel = new AnalysisViewModel();
             DataContext = _viewModel;
+            IsVisibleChanged += OnIsVisibleChanged;
             ShowSelectedPeriod();
         }
 
@@ -50,12 +53,13 @@ namespace EcoKoin.WPF.Views
                 period == 1 ? "Bulan ini" :
                 period == 2 ? "Tahun ini" : "Pilih periode";
             PeriodDescription.Text = description;
-            RefreshPowerSaverDuration();
 
-            if (_periodData.TryGetValue(period, out var data) && data?.Points.Count > 0)
+            if (_periodData.TryGetValue(period, out var data) && data.Points.Count > 0)
             {
                 _viewModel.SetData(data.Points, data.EnergySavedKwh,
-                    data.Co2SavedKg, data.MoneySavedRp, description);
+                    data.Co2SavedKg, data.MoneySavedRp, description,
+                    period == 2 ? "bulan" : "hari",
+                    data.PowerSaverKwh, data.SleepKwh);
                 DrawChart(Co2ChartCanvas, data.Points, p => p.Co2SavedKg,
                     Color.FromRgb(44, 76, 62), false);
                 DrawChart(MoneyChartCanvas, data.Points, p => p.MoneySavedRp,
@@ -77,24 +81,11 @@ namespace EcoKoin.WPF.Views
             }
         }
 
-        public void ShowWeeklyPowerSaverMinutes(long minutes)
-        {
-            _weeklyPowerSaverMinutes = minutes;
-            RefreshPowerSaverDuration();
-        }
-
-        private void RefreshPowerSaverDuration()
-        {
-            if (PeriodComboBox.SelectedIndex == 0 && _weeklyPowerSaverMinutes is long minutes)
-                _viewModel.SetPowerSaverDuration(minutes);
-            else
-                _viewModel.ClearPowerSaverDuration();
-        }
-
         // FE integration point: caller supplies already-aggregated values.
         // Call from the WPF UI thread (Dispatcher) when real data is available.
         public void UpdatePeriodData(int period, IEnumerable<AnalysisDataPoint> points,
-            double energySavedKwh, double co2SavedKg, double moneySavedRp)
+            double energySavedKwh, double co2SavedKg, double moneySavedRp,
+            double powerSaverKwh = 0, double sleepKwh = 0)
         {
             if (period < 0 || period > 2)
                 throw new ArgumentOutOfRangeException(nameof(period));
@@ -103,7 +94,8 @@ namespace EcoKoin.WPF.Views
             if (pointList.Any(p => p == null || !IsValid(p.Co2SavedKg) ||
                 !IsValid(p.MoneySavedRp)))
                 throw new ArgumentException("Titik grafik harus berisi angka valid.", nameof(points));
-            if (!IsValid(energySavedKwh) || !IsValid(co2SavedKg) || !IsValid(moneySavedRp))
+            if (!IsValid(energySavedKwh) || !IsValid(co2SavedKg) || !IsValid(moneySavedRp) ||
+                !IsValid(powerSaverKwh) || !IsValid(sleepKwh))
                 throw new ArgumentException("Nilai KPI harus berupa angka valid.");
 
             _periodData[period] = new AnalysisPeriodData
@@ -111,10 +103,75 @@ namespace EcoKoin.WPF.Views
                 Points = pointList,
                 EnergySavedKwh = energySavedKwh,
                 Co2SavedKg = co2SavedKg,
-                MoneySavedRp = moneySavedRp
+                MoneySavedRp = moneySavedRp,
+                PowerSaverKwh = powerSaverKwh,
+                SleepKwh = sleepKwh
             };
             if (PeriodComboBox.SelectedIndex == period)
                 ShowSelectedPeriod();
+        }
+
+        // Forgets a period so it shows the empty state again (no user / no session data).
+        public void ClearPeriodData(int period)
+        {
+            if (period < 0 || period > 2)
+                throw new ArgumentOutOfRangeException(nameof(period));
+
+            if (_periodData.Remove(period) && PeriodComboBox.SelectedIndex == period)
+                ShowSelectedPeriod();
+        }
+
+        private void OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is true)
+                _ = LoadAsync();
+        }
+
+        // Reads the logged-in user's power sessions off the UI thread and feeds the three periods.
+        private async Task LoadAsync()
+        {
+            int request = ++_loadRequest;
+            string? userId = AuthBridge.CurrentUser?.UserId;
+            var accounts = (Application.Current as App)?.Accounts;
+            if (string.IsNullOrEmpty(userId) || accounts == null)
+            {
+                for (int period = 0; period <= 2; period++)
+                    ClearPeriodData(period);
+                return;
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            try
+            {
+                var periods = await Task.Run(() =>
+                    AnalyticsLoader.LoadPeriods(accounts.GetRepository(), userId, today));
+                if (request != _loadRequest)
+                    return;
+
+                for (int period = 0; period < periods.Length; period++)
+                {
+                    try
+                    {
+                        var data = periods[period];
+                        if (data == null)
+                            ClearPeriodData(period);
+                        else
+                            UpdatePeriodData(period, data.Points, data.Kwh, data.Co2Kg, data.Rupiah,
+                                data.PowerSaverKwh, data.SleepKwh);
+                    }
+                    catch (Exception ex) when (ex is ArgumentException)
+                    {
+                        // One bad period must not hide the others.
+                        ClearPeriodData(period);
+                        System.Diagnostics.Trace.TraceError("EcoKoin analysis period {0} invalid: {1}", period, ex.Message);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Keep whatever is shown; the next time the page opens it tries again.
+                System.Diagnostics.Trace.TraceError("EcoKoin analysis load failed: {0}", ex.GetType().Name);
+            }
         }
 
         private static bool IsValid(double value) =>
@@ -148,7 +205,7 @@ namespace EcoKoin.WPF.Views
                     StrokeThickness = 1
                 });
                 AddLabel(canvas, currency ? value.ToString("N0", new CultureInfo("id-ID")) :
-                    value.ToString("0.##", CultureInfo.InvariantCulture),
+                    value.ToString("0.##", new CultureInfo("id-ID")),
                     0, y - 8, 40, axisBrush, 11, TextAlignment.Right);
             }
 
@@ -210,6 +267,8 @@ namespace EcoKoin.WPF.Views
             public double EnergySavedKwh { get; set; }
             public double Co2SavedKg { get; set; }
             public double MoneySavedRp { get; set; }
+            public double PowerSaverKwh { get; set; }
+            public double SleepKwh { get; set; }
         }
     }
 }
