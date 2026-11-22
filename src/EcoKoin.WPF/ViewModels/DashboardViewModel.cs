@@ -44,13 +44,14 @@ namespace EcoKoin.WPF.ViewModels
             if (string.IsNullOrEmpty(name))
                 name = user?.Email.Split('@')[0].Trim();
 
-            GreetingDisplay = string.IsNullOrEmpty(name) ? "Hai!" : $"Hai, {name}!";
+            AccountDisplayName = string.IsNullOrEmpty(name) ? null : name;
             _totalKoinDisplay = user?.TotalEcoKoin is int balance
                 ? $"{balance.ToString("N0", IndonesianCulture)} Koin"
                 : "—";
         }
 
-        public string GreetingDisplay { get; }
+        public string? AccountDisplayName { get; }
+        public string GreetingDisplay => AccountDisplayName is null ? "Hai!" : $"Hai, {AccountDisplayName}!";
         public string TotalKoinDisplay { get => _totalKoinDisplay; set => SetProperty(ref _totalKoinDisplay, value); }
         public string KoinMingguanDisplay { get => _koinMingguanDisplay; set => SetProperty(ref _koinMingguanDisplay, value); }
         public string SuhuDisplay { get => _suhuDisplay; set => SetProperty(ref _suhuDisplay, value); }
