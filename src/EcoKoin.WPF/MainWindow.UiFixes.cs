@@ -21,7 +21,6 @@ namespace EcoKoin.WPF
                 _dashboardInteractionsInitialized = true;
 
                 var buttons = FindChildren<Button>(DashboardContent).ToList();
-                int applyIndex = 0;
 
                 foreach (var button in buttons)
                 {
@@ -29,14 +28,6 @@ namespace EcoKoin.WPF
 
                     switch (label)
                     {
-                        case "Terapkan":
-                            if (applyIndex == 0)
-                                button.Click += ApplyBrightness_Click;
-                            else if (applyIndex == 1)
-                                button.Click += ApplySleep_Click;
-                            applyIndex++;
-                            break;
-
                         case "Klaim +30":
                             button.Click += DashboardClaimSleep_Click;
                             break;

@@ -14,6 +14,7 @@
         Background="{StaticResource CanvasBrush}"
         FontFamily="Segoe UI">
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility"/>
         <SolidColorBrush x:Key="Forest" Color="#2B4B3E"/>
         <SolidColorBrush x:Key="Muted" Color="#678177"/>
         <SolidColorBrush x:Key="Panel" Color="#E8F2F0"/>
@@ -221,8 +222,10 @@
                     </Border>
                     <Border Grid.Column="1" Background="{StaticResource Panel}" CornerRadius="24" Padding="14" Margin="12,0,0,0">
                         <StackPanel>
-                            <TextBlock Text="REKOMENDASI ADAPTIF CUACA" Style="{StaticResource SectionTitle}" Margin="0,0,0,7"/>
-                            <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="9" Margin="0,0,0,6">
+                            <TextBlock Text="REKOMENDASI HEMAT ENERGI" Style="{StaticResource SectionTitle}" Margin="0,0,0,7"/>
+                            <Border x:Name="WeatherRecommendationPanel"
+                                    Background="{StaticResource Mint}" CornerRadius="19" Padding="9" Margin="0,0,0,6"
+                                    Visibility="{Binding WeatherRecommendationsEnabled, Converter={StaticResource BooleanToVisibility}}">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -232,7 +235,8 @@
                                         <TextBlock Text="{Binding RekomendasiCuacaDisplay}" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding AlasanRekomendasiCuacaDisplay}" TextWrapping="Wrap" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,2,6,0"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"
+                                            Click="ApplyBrightness_Click"/>
                                 </Grid>
                             </Border>
                             <Border Background="{StaticResource Mint}" CornerRadius="19" Padding="9">
@@ -245,7 +249,8 @@
                                         <TextBlock Text="{Binding RekomendasiSleepDisplay}" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding AlasanRekomendasiSleepDisplay}" FontSize="10" Foreground="{StaticResource Muted}" Margin="0,2,6,0"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="Terapkan" Style="{StaticResource OrangeButton}" VerticalAlignment="Center"
+                                            Click="ApplySleep_Click"/>
                                 </Grid>
                             </Border>
                         </StackPanel>

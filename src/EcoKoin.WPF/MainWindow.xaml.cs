@@ -14,7 +14,16 @@ namespace EcoKoin.WPF
         {
             InitializeComponent();
             var user = AuthBridge.CurrentUser;
-            DashboardContent.DataContext = new DashboardViewModel(user);
+            var dashboard = new DashboardViewModel(user);
+            DashboardContent.DataContext = dashboard;
+
+            void ApplyWeatherPreference() => dashboard.WeatherRecommendationsEnabled =
+                WelcomePreferencesStore.Load().WeatherRecommendationsEnabled;
+
+            ApplyWeatherPreference();
+            WelcomePreferencesStore.PreferencesChanged += ApplyWeatherPreference;
+            Closed += (_, _) => WelcomePreferencesStore.PreferencesChanged -= ApplyWeatherPreference;
+
             InitializeDashboardInteractions();
 
             AppSidebar.AddHandler(
