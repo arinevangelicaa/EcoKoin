@@ -6,7 +6,9 @@ using System;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls.Primitives;
+using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace EcoKoin.WPF
 {
@@ -21,10 +23,32 @@ namespace EcoKoin.WPF
             InitializeComponent();
             var user = AuthBridge.CurrentUser;
             var dashboard = new DashboardViewModel(user);
+            InitializeDashboardWeather(dashboard, weatherClient, clock, loadPreferences);
+            var powerStatus = new WindowsPowerSaverStatus();
+            var batteryTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            void RefreshBattery()
+            {
+                var battery = WindowsPowerSaverStatus.ReadBattery();
+                dashboard.BateraiDisplay = battery.Percent is int percent ? $"{percent}%" : "—";
+                dashboard.StatusDayaDisplay = battery.Status;
+            }
+            SourceInitialized += (_, _) => powerStatus.Register(PresentationSource.FromVisual(this) as HwndSource);
+            Loaded += (_, _) =>
+            {
+                RefreshBattery();
+                batteryTimer.Start();
+            };
+            batteryTimer.Tick += (_, _) => RefreshBattery();
+            Closed += (_, _) =>
+            {
+                batteryTimer.Stop();
+                powerStatus.Unregister();
+            };
+            if (user?.UserId is not null && Application.Current is App app)
+                InitializePowerSaverQuest(dashboard, user, app.Accounts, powerStatus);
+
             DashboardContent.DataContext = dashboard;
             QuestRewardContent.DataContext = dashboard;
-
-            InitializeDashboardWeather(dashboard, weatherClient, clock, loadPreferences);
 
             InitializeDashboardInteractions();
 

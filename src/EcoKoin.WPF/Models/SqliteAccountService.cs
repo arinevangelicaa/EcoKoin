@@ -11,7 +11,7 @@ namespace EcoKoin.WPF.Models
         private readonly object _initializationLock = new();
         private SqliteRepository? _repository;
 
-        private SqliteRepository GetRepository()
+        internal SqliteRepository GetRepository()
         {
             lock (_initializationLock)
             {
@@ -53,6 +53,7 @@ namespace EcoKoin.WPF.Models
 
             return new AuthUser
             {
+                UserId = user.UserId,
                 Email = username,
                 Username = user.DisplayName,
                 TotalEcoKoin = user.TotalEcoKoin

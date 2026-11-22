@@ -20,6 +20,34 @@ public class SqliteRepositoryTests : IDisposable
     private static SleepQuest NewSleepQuest(string id, string userId, DateOnly date, int progress = 0, bool claimed = false)
         => new(id, userId, "Sleep when away", 1, 30, date, progress, claimed);
 
+    [Fact]
+    public void PowerSaverQuest_OnlyCreditsEachMinuteAndClaimOnce()
+    {
+        var user = NewUser(coins: 5);
+        var otherUser = NewUser(id: "u2", name: "second");
+        Repo.SaveUser(user);
+        Repo.SaveUser(otherUser);
+        var quest = new PowerSaverQuest("power-quest", user.UserId, "Power Saver", 240, 20, Today, 239);
+        Repo.SaveQuestProgress(quest);
+
+        Assert.False(Repo.TryClaimPowerSaverQuest(user.UserId, quest.QuestId, Today));
+        Repo.RecordPowerSaverMinute(otherUser.UserId, quest.QuestId, Today, 500);
+        Repo.RecordPowerSaverMinute(user.UserId, quest.QuestId, Today.AddDays(1), 500);
+        Assert.Equal(239, Repo.EnsureDailyQuests(user.UserId, Today).Single().CurrentProgress);
+
+        Parallel.For(0, 8, _ => Repo.RecordPowerSaverMinute(user.UserId, quest.QuestId, Today, 500));
+        Assert.Equal(240, Repo.EnsureDailyQuests(user.UserId, Today).Single().CurrentProgress);
+        Assert.False(Repo.TryClaimPowerSaverQuest(otherUser.UserId, quest.QuestId, Today));
+
+        int claims = Enumerable.Range(0, 8).AsParallel()
+            .Count(_ => Repo.TryClaimPowerSaverQuest(user.UserId, quest.QuestId, Today));
+        Assert.Equal(1, claims);
+        var reopened = new SqliteRepository(_db.ConnectionString);
+        Assert.Equal(25, reopened.GetUserByUsername(user.Username)!.TotalEcoKoin);
+        Assert.True(reopened.EnsureDailyQuests(user.UserId, Today).Single().IsClaimed);
+        Assert.Equal(0, reopened.GetUserByUsername(otherUser.Username)!.TotalEcoKoin);
+    }
+
     // ---- schema / init -------------------------------------------------------------------
 
     [Fact]
