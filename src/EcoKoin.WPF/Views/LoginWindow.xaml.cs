@@ -225,12 +225,9 @@ namespace EcoKoin.WPF.Views
             object sender,
             RoutedEventArgs e)
         {
-            var register = new RegisterWindow
-            {
-                Owner = this
-            };
+            var register = new RegisterWindow { OpenedFromLogin = true };
 
-            if (register.ShowDialog() == true)
+            if (ShowAsPage(register) == true)
             {
                 EmailInput.Text = register.RegisteredEmail;
                 ValidationMessage.Visibility = Visibility.Visible;
@@ -249,16 +246,46 @@ namespace EcoKoin.WPF.Views
             object sender,
             RoutedEventArgs e)
         {
-            var forgot = new ForgotPasswordWindow
-            {
-                Owner = this
-            };
+            var forgot = new ForgotPasswordWindow();
 
             forgot.EmailInput.Text =
                 EmailInput.Text.Trim();
 
-            forgot.ShowDialog();
+            ShowAsPage(forgot);
             Activate();
+        }
+
+        /// <summary>
+        /// Behaves like a page switch: <paramref name="page"/> takes this window's place, size and
+        /// state while this window stays hidden, and returns to the page's last position when it closes.
+        /// </summary>
+        private bool? ShowAsPage(Window page)
+        {
+            var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+            page.WindowStartupLocation = WindowStartupLocation.Manual;
+            page.Left = bounds.Left;
+            page.Top = bounds.Top;
+            page.Width = bounds.Width;
+            page.Height = bounds.Height;
+            page.WindowState = WindowState;
+
+            Hide();
+            try
+            {
+                return page.ShowDialog();
+            }
+            finally
+            {
+                if (page.WindowState == WindowState.Normal)
+                {
+                    Left = page.Left;
+                    Top = page.Top;
+                    Width = page.Width;
+                    Height = page.Height;
+                }
+                WindowState = page.WindowState == WindowState.Minimized ? WindowState.Normal : page.WindowState;
+                Show();
+            }
         }
     }
 }

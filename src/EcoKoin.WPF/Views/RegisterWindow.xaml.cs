@@ -14,6 +14,9 @@ namespace EcoKoin.WPF.Views
 
         internal string RegisteredEmail { get; private set; } = "";
 
+        /// <summary>True when LoginWindow hid itself to show this window; "Masuk" then just closes this window.</summary>
+        internal bool OpenedFromLogin { get; init; }
+
         public RegisterWindow()
         {
             InitializeComponent();
@@ -157,7 +160,7 @@ namespace EcoKoin.WPF.Views
         private void OpenLogin_Click(object sender, RoutedEventArgs e)
         {
             // When opened from the new login page, close register and return to login.
-            if (Owner is LoginWindow)
+            if (OpenedFromLogin || Owner is LoginWindow)
             {
                 Close();
                 return;
