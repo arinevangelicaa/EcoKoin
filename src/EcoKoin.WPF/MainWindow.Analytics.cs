@@ -10,7 +10,7 @@ namespace EcoKoin.WPF
         // OWNER: analytics agent. Fills the dashboard "ANALISIS MINGGUAN" card (energy, CO2, rupiah,
         // weekly koin, 7-day chart) from POWER_SESSIONS / claimed quests.
         private void InitializeDashboardAnalytics(DashboardViewModel dashboard, AuthUser user,
-            SqliteAccountService accounts, IClock clock)
+            AccountService accounts, IClock clock)
         {
             string userId = user.UserId!;
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(2) };
@@ -26,7 +26,7 @@ namespace EcoKoin.WPF
                 var today = DateOnly.FromDateTime(clock.Now);
                 try
                 {
-                    var week = await Task.Run(() => AnalyticsLoader.LoadWeek(accounts.GetRepository(), userId, today));
+                    var week = await AnalyticsLoader.LoadWeekAsync(accounts.GetRepository(), userId, today);
                     // A newer refresh (data changed meanwhile) supersedes this result.
                     if (!closed && request == latestRequest)
                         dashboard.ShowWeeklyAnalytics(week);

@@ -85,29 +85,29 @@ namespace EcoKoin.WPF.ViewModels
         }
     }
 
-    // Database reads for the analytics. Call from a background thread; the result is plain data.
+    // Database reads for the analytics (async, remote database); the result is plain data.
     internal static class AnalyticsLoader
     {
         private static DateTime StartOf(DateOnly date) => date.ToDateTime(TimeOnly.MinValue);
 
-        public static WeekAnalytics LoadWeek(SqliteRepository repository, string userId, DateOnly today)
+        public static async Task<WeekAnalytics> LoadWeekAsync(IAppRepository repository, string userId, DateOnly today)
         {
             var from = today.AddDays(-6);
-            var sessions = repository.GetPowerSessions(userId, StartOf(from), StartOf(today.AddDays(1)));
+            var sessions = await repository.GetPowerSessionsAsync(userId, StartOf(from), StartOf(today.AddDays(1)));
             var report = new CarbonFinancialReport(sessions, today);
             double[] daily = report.GenerateWeeklyChart().Select(p => p.KwhSaved).ToArray();
-            int koin = repository.GetKoinEarnedPerDay(userId, from, today).Sum(d => d.Koin);
+            int koin = (await repository.GetKoinEarnedPerDayAsync(userId, from, today)).Sum(d => d.Koin);
             return new WeekAnalytics(today, daily, report.TotalKwhSaved, report.TotalCo2Reduced,
                 report.TotalRupiahSaved, koin, sessions.Any(s => s.EndTime is not null));
         }
 
         // Index 0 = last 7 days, 1 = this month, 2 = this year; null when the period has no closed session.
-        public static PeriodAnalytics?[] LoadPeriods(SqliteRepository repository, string userId, DateOnly today)
+        public static async Task<PeriodAnalytics?[]> LoadPeriodsAsync(IAppRepository repository, string userId, DateOnly today)
         {
             var yearStart = new DateOnly(today.Year, 1, 1);
             var weekStart = today.AddDays(-6);
             var earliest = weekStart < yearStart ? weekStart : yearStart;
-            var sessions = repository.GetPowerSessions(userId, StartOf(earliest), StartOf(today.AddDays(1)))
+            var sessions = (await repository.GetPowerSessionsAsync(userId, StartOf(earliest), StartOf(today.AddDays(1))))
                 .Where(s => s.EndTime is not null)
                 .ToList();
 
