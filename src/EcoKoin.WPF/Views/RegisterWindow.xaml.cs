@@ -156,20 +156,7 @@ namespace EcoKoin.WPF.Views
 
         private void OpenLogin_Click(object sender, RoutedEventArgs e)
         {
-            // When opened from the new login page, close register and return to login.
-            if (Owner is LoginWindow)
-            {
-                Close();
-                return;
-            }
-            // Legacy path when registration was opened by the old MainWindow overlay.
-            var dashboard = Owner as MainWindow
-                            ?? Application.Current.Windows.OfType<MainWindow>().FirstOrDefault()
-                            ?? new MainWindow();
-            Application.Current.MainWindow = dashboard;
-            if (!dashboard.IsVisible) dashboard.Show();
-            dashboard.Activate();
-            dashboard.ShowLoginOverlay();
+            // Registration is only opened from the login page, which shows itself again when this closes.
             Close();
         }
     }

@@ -208,8 +208,7 @@
                     <Grid Margin="0,16,0,22">
                         <CheckBox x:Name="RememberMe" Content="Ingat saya" VerticalAlignment="Center"
                                   Foreground="{StaticResource AuthForest}" FontSize="14"
-                                  IsEnabled="False" ToolTipService.ShowOnDisabled="True"
-                                  ToolTip="Masukkan kembali kata sandi setiap kali membuka EcoKoin."/>
+                                  ToolTip="Tetap masuk di perangkat ini selama 7 hari."/>
                         <Button Content="Lupa kata sandi?" Click="ForgotPassword_Click" HorizontalAlignment="Right"
                                 Style="{StaticResource LinkButtonStyle}"/>
                     </Grid>

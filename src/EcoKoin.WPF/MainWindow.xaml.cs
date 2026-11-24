@@ -1,29 +1,60 @@
 ﻿using EcoKoin.WPF.Components;
 using EcoKoin.WPF.Models;
+using EcoKoin.Services;
 using EcoKoin.WPF.ViewModels;
 using System;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls.Primitives;
+using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace EcoKoin.WPF
 {
     public partial class MainWindow : Window
     {
-        public MainWindow()
+        public MainWindow() : this(WeatherHttpClient, new SystemClock(), WelcomePreferencesStore.Load)
+        {
+        }
+
+        internal MainWindow(HttpClient weatherClient, IClock clock, Func<WelcomePreferences> loadPreferences)
         {
             InitializeComponent();
             var user = AuthBridge.CurrentUser;
             var dashboard = new DashboardViewModel(user);
+            InitializeDashboardWeather(dashboard, weatherClient, clock, loadPreferences);
+            var powerStatus = new WindowsPowerSaverStatus();
+            var batteryTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            void RefreshBattery()
+            {
+                var battery = WindowsPowerSaverStatus.ReadBattery();
+                dashboard.BateraiDisplay = battery.Percent is int percent ? $"{percent}%" : "—";
+                dashboard.StatusDayaDisplay = battery.Status;
+            }
+            SourceInitialized += (_, _) => powerStatus.Register(PresentationSource.FromVisual(this) as HwndSource);
+            Loaded += (_, _) =>
+            {
+                RefreshBattery();
+                batteryTimer.Start();
+            };
+            batteryTimer.Tick += (_, _) => RefreshBattery();
+            Closed += (_, _) =>
+            {
+                batteryTimer.Stop();
+                powerStatus.Unregister();
+            };
+            if (user?.UserId is not null && Application.Current is App app)
+            {
+                InitializePowerSaverQuest(dashboard, user, app.Accounts, powerStatus);
+                InitializeDashboardQuests(dashboard, user, app.Accounts, clock);
+                InitializeDashboardPet(dashboard, user, app.Accounts, clock);
+                InitializeDashboardAnalytics(dashboard, user, app.Accounts, clock);
+                InitializePowerSessions(dashboard, user, app.Accounts, powerStatus, clock);
+            }
+
             DashboardContent.DataContext = dashboard;
             QuestRewardContent.DataContext = dashboard;
-
-            void ApplyWeatherPreference() => dashboard.WeatherRecommendationsEnabled =
-                WelcomePreferencesStore.Load().WeatherRecommendationsEnabled;
-
-            ApplyWeatherPreference();
-            WelcomePreferencesStore.PreferencesChanged += ApplyWeatherPreference;
-            Closed += (_, _) => WelcomePreferencesStore.PreferencesChanged -= ApplyWeatherPreference;
 
             InitializeDashboardInteractions();
 
@@ -123,27 +154,6 @@ namespace EcoKoin.WPF
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
-        }
-
-        private void CancelLogin_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            LoginPassword.Clear();
-            LoginOverlay.Visibility =
-                Visibility.Collapsed;
-        }
-
-        private void SubmitLogin_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            // Jalur overlay lama tidak digunakan.
-            LoginPassword.Clear();
-            LoginOverlay.Visibility =
-                Visibility.Collapsed;
-
-            ShowFullLogin();
         }
 
         private static T? FindParent<T>(

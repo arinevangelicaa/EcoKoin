@@ -123,11 +123,12 @@
                                FontSize="19"
                                HorizontalAlignment="Right"/>
                         </Grid>
-                        <TextBlock Text="{Binding TotalKoinDisplay}"
-                                   FontFamily="{StaticResource HeadingFont}"
-                                   FontSize="26" FontWeight="SemiBold"
-                                   Foreground="{StaticResource ForestGreenBrush}"
-                                   Margin="0,6,0,0"/>
+                        <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,6,0,0">
+                            <TextBlock Text="{Binding TotalKoinDisplay}"
+                                       FontFamily="{StaticResource HeadingFont}"
+                                       FontSize="26" FontWeight="SemiBold"
+                                       Foreground="{StaticResource ForestGreenBrush}"/>
+                        </Viewbox>
                         <TextBlock Text="{Binding KoinMingguanDisplay}"
                                    FontFamily="{StaticResource BodyFont}"
                                    FontSize="11" Foreground="{StaticResource QuestText}"
@@ -135,7 +136,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Reuse user's existing happy.png (same EcoPet as the dashboard). -->
+                <!-- Same EcoPet as the dashboard: image and texts come from the DashboardViewModel pet state. -->
                 <Border Grid.Column="2" Style="{StaticResource QuestCard}" Padding="14,10">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -143,7 +144,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <Image Grid.Column="0" Source="/Assets/Images/happy.png"
+                        <Image Grid.Column="0" Source="{Binding PetImageSource}"
                                Width="108" Height="137" Stretch="Uniform"
                                VerticalAlignment="Center"/>
 
@@ -157,16 +158,16 @@
 
                             <Grid Grid.Row="0" Margin="0,0,0,7">
                                 <TextBlock Text="ECOPET" Style="{StaticResource QuestSectionTitle}"/>
-                                <TextBlock Text="Happy &amp; Healthy" HorizontalAlignment="Right"
+                                <TextBlock Text="{Binding PetStateDisplay}" HorizontalAlignment="Right"
                                            Foreground="{StaticResource QuestMuted}" FontSize="10"/>
                             </Grid>
-                            <TextBlock Grid.Row="1" Text="Langkah kecilmu bikin aku tumbuh!"
+                            <TextBlock Grid.Row="1" Text="{Binding PetHeadlineDisplay}"
                                        FontFamily="{StaticResource HeadingFont}"
                                        FontWeight="SemiBold" FontSize="14"
                                        Foreground="{StaticResource ForestGreenBrush}"
                                        TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="2"
-                                       Text="Terus hemat energi secara konsisten untuk menjaga EcoPet tetap sehat."
+                                       Text="{Binding PetHintDisplay}"
                                        FontFamily="{StaticResource BodyFont}" FontSize="11"
                                        Foreground="{StaticResource QuestMuted}"
                                        TextWrapping="Wrap" Margin="0,4,0,6"/>
@@ -178,16 +179,16 @@
                                                    FontSize="12"
                                                    Margin="0,0,5,0"/>
 
-                                        <TextBlock Text="Level 5"
+                                        <TextBlock Text="{Binding LevelDisplay}"
                                                    Foreground="{StaticResource SunOrangeBrush}"
                                                    FontWeight="SemiBold"
                                                    FontSize="10"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    <TextBlock Text="350 / 500 XP" HorizontalAlignment="Right"
+                                    <TextBlock Text="{Binding XpDisplay}" HorizontalAlignment="Right"
                                                FontSize="10" Foreground="{StaticResource QuestMuted}"/>
                                 </Grid>
-                                <ProgressBar Maximum="500" Value="350" Height="7"
+                                <ProgressBar Maximum="100" Value="{Binding XpProgress, Mode=OneWay}" Height="7"
                                              Margin="0,4,0,0" BorderThickness="0"
                                              Foreground="{StaticResource SunOrangeBrush}"
                                              Background="{StaticResource QuestLine}"/>
@@ -213,13 +214,13 @@
 
                     <!-- PROGRESS -->
                     <Grid>
-                        <TextBlock Text="2 dari 3 misi selesai"
+                        <TextBlock Text="{Binding MisiSelesaiDisplay}"
                                    FontSize="11" Foreground="{StaticResource QuestMuted}"/>
-                        <TextBlock Text="67%" FontSize="10"
+                        <TextBlock Text="{Binding MisiPersenDisplay}" FontSize="10"
                                    Foreground="{StaticResource SunOrangeBrush}"
                                    HorizontalAlignment="Right"/>
                     </Grid>
-                    <ProgressBar Value="67" Maximum="100" Height="7" Margin="0,5,0,9"
+                    <ProgressBar Value="{Binding MisiProgress, Mode=OneWay}" Maximum="100" Height="7" Margin="0,5,0,9"
                                  Foreground="{StaticResource ForestGreenBrush}"
                                  Background="{StaticResource QuestLine}"
                                  BorderThickness="0"/>
@@ -239,17 +240,19 @@
                                            FontSize="20"/>
                             </Border>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,6,0">
-                                <TextBlock Text="Aktifkan sleep saat ditinggal"
+                                <TextBlock Text="{Binding SleepQuestItem.Title}"
                                            FontFamily="{StaticResource HeadingFont}"
                                            FontWeight="SemiBold" FontSize="13"
-                                           Foreground="{StaticResource ForestGreenBrush}"/>
-                                <TextBlock Text="Selesai • siap diklaim · PC sudah masuk sleep saat tidak digunakan."
+                                           Foreground="{StaticResource ForestGreenBrush}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding SleepQuestItem.StatusText}"
                                            FontSize="10" Foreground="{StaticResource QuestMuted}"
                                            TextWrapping="Wrap"/>
                             </StackPanel>
-                            <Button Grid.Column="2" Content="Klaim +30"
+                            <Button Grid.Column="2" Content="{Binding SleepQuestItem.RewardLabel}"
                                     Style="{StaticResource QuestClaimButton}"
-                                    VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                    VerticalAlignment="Center" HorizontalAlignment="Right"
+                                    IsEnabled="{Binding SleepQuestItem.CanClaim}" Command="{Binding SleepQuestItem.ClaimCommand}"/>
                         </Grid>
                     </Border>
 
@@ -271,21 +274,18 @@
                                            FontSize="20"/>
                             </Border>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,6,0">
-                                <TextBlock Text="Power saver selama 4 jam"
+                                <TextBlock Text="{Binding PowerSaverTitle}"
                                            FontFamily="{StaticResource HeadingFont}"
                                            FontWeight="SemiBold" FontSize="13"
-                                           Foreground="{StaticResource ForestGreenBrush}"/>
-                                <TextBlock Text="Sedang berjalan • 2/4 jam · Lanjutkan power saver 2 jam lagi."
+                                           Foreground="{StaticResource ForestGreenBrush}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding PowerSaverStatus}"
                                            FontSize="10" Foreground="{StaticResource QuestMuted}"
                                            TextWrapping="Wrap"/>
                             </StackPanel>
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center"
-                                        HorizontalAlignment="Right">
-                                <TextBlock Text="+20 Koin" FontSize="11" FontWeight="SemiBold"
-                                           Foreground="{StaticResource QuestMuted}" HorizontalAlignment="Right"/>
-                                <TextBlock Text="Setelah selesai" FontSize="10"
-                                           Foreground="{StaticResource QuestMuted}" HorizontalAlignment="Right"/>
-                            </StackPanel>
+                            <Button Grid.Column="2" Content="{Binding PowerSaverReward}" Style="{StaticResource QuestClaimButton}"
+                                    VerticalAlignment="Center" HorizontalAlignment="Right"
+                                    IsEnabled="{Binding CanClaimPowerSaver}" Command="{Binding ClaimPowerSaverCommand}"/>
                         </Grid>
                     </Border>
 
@@ -304,17 +304,19 @@
                                            FontSize="21"/>
                             </Border>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,6,0">
-                                <TextBlock Text="Terapkan 1 rekomendasi cuaca"
+                                <TextBlock Text="{Binding WeatherQuestItem.Title}"
                                            FontFamily="{StaticResource HeadingFont}"
                                            FontWeight="SemiBold" FontSize="13"
-                                           Foreground="{StaticResource ForestGreenBrush}"/>
-                                <TextBlock Text="Selesai • siap diklaim · Kecerahan sudah diturunkan ke 40% saat berawan."
+                                           Foreground="{StaticResource ForestGreenBrush}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding WeatherQuestItem.StatusText}"
                                            FontSize="10" Foreground="{StaticResource QuestMuted}"
                                            TextWrapping="Wrap"/>
                             </StackPanel>
-                            <Button Grid.Column="2" Content="Klaim +15"
+                            <Button Grid.Column="2" Content="{Binding WeatherQuestItem.RewardLabel}"
                                     Style="{StaticResource QuestClaimButton}"
-                                    VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                    VerticalAlignment="Center" HorizontalAlignment="Right"
+                                    IsEnabled="{Binding WeatherQuestItem.CanClaim}" Command="{Binding WeatherQuestItem.ClaimCommand}"/>
                         </Grid>
                     </Border>
                 </StackPanel>

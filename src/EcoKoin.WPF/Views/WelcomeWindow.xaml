@@ -234,7 +234,7 @@
                                 <TextBlock Text="Untuk saran sesuai cuaca di sekitarmu." Style="{StaticResource WelCaption}" Margin="0,4,0,0"/>
                             </StackPanel>
                             <Grid Grid.Column="2" VerticalAlignment="Center">
-                                <Button x:Name="EditLocationButton" Content="Catur Tunggal  ✎" Height="38" Click="EditLocation_Click"
+                                <Button x:Name="EditLocationButton" Height="38" Click="EditLocation_Click"
                                         Background="#F6F8F7" Foreground="{StaticResource WelForest}"
                                         BorderBrush="{StaticResource WelLine}" BorderThickness="1" Cursor="Hand"/>
                                 <Grid x:Name="LocationEditor" Visibility="Collapsed" Background="{StaticResource WelMisty}">
