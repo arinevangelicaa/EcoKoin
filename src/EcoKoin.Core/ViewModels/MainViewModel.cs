@@ -6,20 +6,22 @@ namespace EcoKoin.ViewModels
 {
     /// <summary>
     /// Dashboard ViewModel. Spec: docs/03-domain-model.md (MainViewModel). Bound by the WPF view.
-    /// Contains no timers: the UI layer (e.g. a DispatcherTimer) calls <see cref="OnTick"/> periodically
+    /// Contains no timers: the UI layer (e.g. a DispatcherTimer) calls <see cref="OnTickAsync"/> periodically
     /// (suggested: every minute) so the logic stays deterministic and testable.
+    /// Everything that touches the (remote) repository is asynchronous; call these methods from the UI thread
+    /// and await them so property changes are raised on the UI thread.
     /// </summary>
     public class MainViewModel : ObservableObject
     {
         /// <summary>Schemes with CpuMaxPerformance at or below this count as "Power Saver" for the PowerSaver quest.</summary>
         public const int PowerSaverMaxCpu = 50;
 
-        private readonly SqliteRepository _repo;
+        private readonly IAppRepository _repo;
         private readonly IClock _clock;
 
-        private readonly RelayCommand _applyRecommendationCommand;
-        private readonly RelayCommand _claimQuestCommand;
-        private readonly RelayCommand _refreshCommand;
+        private readonly AsyncRelayCommand _applyRecommendationCommand;
+        private readonly AsyncRelayCommand _claimQuestCommand;
+        private readonly AsyncRelayCommand _refreshCommand;
 
         private User? _currentUser;
         private WeatherData? _currentWeather;
@@ -31,20 +33,23 @@ namespace EcoKoin.ViewModels
         private bool _weatherStale;
         private bool _isIdle;
         private double _estimatedWattSaved;
+        private Exception? _lastError;
 
         private DateOnly _questDate;
         private TimeSpan _powerSaverRemainder = TimeSpan.Zero;
 
-        public MainViewModel(SqliteRepository repo, PowerMonitorService power, WeatherService weather, IClock clock)
+        public MainViewModel(IAppRepository repo, PowerMonitorService power, WeatherService weather, IClock clock)
         {
             _repo = repo;
             _clock = clock;
             PowerService = power;
             WeatherService = weather;
 
-            _applyRecommendationCommand = new RelayCommand(_ => ApplyRecommendation(), _ => CurrentUser is not null && CurrentWeather is not null);
-            _claimQuestCommand = new RelayCommand(p => ClaimQuest((DailyQuest)p!), p => p is DailyQuest q && !q.IsClaimed && q.CheckCompletion());
-            _refreshCommand = new RelayCommand(_ => RefreshDashboard(), _ => CurrentUser is not null);
+            _applyRecommendationCommand = new AsyncRelayCommand(_ => RecordEventAsync(new QuestEvent(QuestEventKind.WeatherRecommendationApplied)),
+                _ => CurrentUser is not null && CurrentWeather is not null, OnCommandFailed);
+            _claimQuestCommand = new AsyncRelayCommand(p => ClaimQuestAsync((DailyQuest)p!),
+                p => p is DailyQuest q && !q.IsClaimed && q.CheckCompletion(), OnCommandFailed);
+            _refreshCommand = new AsyncRelayCommand(_ => RefreshDashboardAsync(), _ => CurrentUser is not null, OnCommandFailed);
 
             ApplyRecommendationCommand = _applyRecommendationCommand;
             ClaimQuestCommand = _claimQuestCommand;
@@ -73,46 +78,42 @@ namespace EcoKoin.ViewModels
         /// <summary>Estimated watts saved right now (estimate, see <see cref="PowerMonitorService.CalculateWattSaved"/>).</summary>
         public double EstimatedWattSaved { get => _estimatedWattSaved; private set => SetProperty(ref _estimatedWattSaved, value); }
 
-        public ICommand ApplyRecommendationCommand { get; protected set; }
+        /// <summary>Last exception thrown by one of the commands (null if none). Bind it to show an error banner.</summary>
+        public Exception? LastError { get => _lastError; private set => SetProperty(ref _lastError, value); }
+
+        /// <summary>Raised on the calling context whenever a command fails (database or network error, ...).</summary>
+        public event EventHandler<Exception>? CommandFailed;
+
+        public AsyncRelayCommand ApplyRecommendationCommand { get; protected set; }
         /// <summary>Parameter: the DailyQuest to claim.</summary>
-        public ICommand ClaimQuestCommand { get; protected set; }
-        public ICommand RefreshCommand { get; protected set; }
+        public AsyncRelayCommand ClaimQuestCommand { get; protected set; }
+        public AsyncRelayCommand RefreshCommand { get; protected set; }
 
         /// <summary>
         /// Loads user (by username), today's quests, pet and schemes, then refreshes the dashboard.
         /// Throws <see cref="InvalidOperationException"/> if the user does not exist.
         /// </summary>
-        public void Initialize(string username)
+        public async Task InitializeAsync(string username, CancellationToken ct = default)
         {
-            _repo.InitializeDatabase();
+            await _repo.InitializeDatabaseAsync(ct);
 
-            var user = _repo.GetUserByUsername(username)
+            var user = await _repo.GetUserByUsernameAsync(username, ct)
                 ?? throw new InvalidOperationException($"User '{username}' does not exist.");
 
             CurrentUser = user;
-            LoadQuests();
+            await LoadQuestsAsync(ct);
 
-            Schemes = _repo.GetPowerSchemes();
+            Schemes = await _repo.GetPowerSchemesAsync(ct);
             ActiveScheme = Schemes.FirstOrDefault(s => s.SchemeId == "scheme-balanced")
                         ?? Schemes.FirstOrDefault(s => s.SchemeName.Equals("Balanced", StringComparison.OrdinalIgnoreCase));
 
-            RefreshDashboard();
+            await RefreshDashboardAsync(ct);
         }
 
-        /// <summary>Updates weather, power state, quests and weekly report. Blocks on the weather request; see <see cref="RefreshDashboardAsync"/>.</summary>
-        public void RefreshDashboard()
-        {
-            var user = RequireUser();
-
-            WeatherData? weather = null;
-            bool failed = false;
-            try { weather = WeatherService.FetchCurrentWeather(); }
-            catch (WeatherUnavailableException) { failed = true; }
-
-            RefreshCore(user, weather, failed);
-        }
-
-        /// <summary>Same as <see cref="RefreshDashboard"/> but does not block the caller while fetching weather.</summary>
+        /// <summary>
+        /// Updates weather, power state, quests and weekly report. A failing weather request never fails the refresh
+        /// (the last data is kept and <see cref="WeatherStale"/> is set); repository errors do propagate.
+        /// </summary>
         public async Task RefreshDashboardAsync(CancellationToken ct = default)
         {
             var user = RequireUser();
@@ -122,14 +123,14 @@ namespace EcoKoin.ViewModels
             try { weather = await WeatherService.FetchCurrentWeatherAsync(ct); }
             catch (WeatherUnavailableException) { failed = true; }
 
-            RefreshCore(user, weather, failed);
+            await RefreshCoreAsync(user, weather, failed, ct);
         }
 
         /// <summary>
         /// Called by the UI timer. Accrues PowerSaver quest minutes while a power-saver scheme is active
         /// (whole minutes only), then refreshes the dashboard.
         /// </summary>
-        public void OnTick(TimeSpan elapsed)
+        public async Task OnTickAsync(TimeSpan elapsed, CancellationToken ct = default)
         {
             if (CurrentUser is null)
                 return;
@@ -141,11 +142,11 @@ namespace EcoKoin.ViewModels
                 if (minutes > 0)
                 {
                     _powerSaverRemainder -= TimeSpan.FromMinutes(minutes);
-                    RecordEvent(new QuestEvent(QuestEventKind.PowerSaverMinutes, minutes));
+                    await RecordEventAsync(new QuestEvent(QuestEventKind.PowerSaverMinutes, minutes), ct);
                 }
             }
 
-            RefreshDashboard();
+            await RefreshDashboardAsync(ct);
         }
 
         /// <summary>Activates <paramref name="scheme"/> through the power service and makes it the active scheme.</summary>
@@ -160,7 +161,7 @@ namespace EcoKoin.ViewModels
         /// <see cref="DailyQuest.UpdateProgress"/>) and persists changed quests.
         /// The power/sleep layer calls this with <see cref="QuestEventKind.SleepEntered"/>.
         /// </summary>
-        public void RecordEvent(QuestEvent evt)
+        public async Task RecordEventAsync(QuestEvent evt, CancellationToken ct = default)
         {
             RequireUser();
 
@@ -172,7 +173,7 @@ namespace EcoKoin.ViewModels
                     continue;
 
                 quest.UpdateProgress(amount);
-                _repo.SaveQuestProgress(quest);
+                await _repo.SaveQuestProgressAsync(quest, ct);
                 changed = true;
             }
 
@@ -180,12 +181,7 @@ namespace EcoKoin.ViewModels
                 PublishQuests();
         }
 
-        private void ApplyRecommendation()
-        {
-            RecordEvent(new QuestEvent(QuestEventKind.WeatherRecommendationApplied));
-        }
-
-        private void ClaimQuest(DailyQuest quest)
+        private async Task ClaimQuestAsync(DailyQuest quest)
         {
             var user = RequireUser();
 
@@ -195,34 +191,34 @@ namespace EcoKoin.ViewModels
             user.Pet ??= new EcoPet(Guid.NewGuid().ToString(), user.UserId);
             user.Pet.UpdateState(CoinsEarnedToday());
 
-            _repo.SaveQuestProgress(quest);
-            _repo.UpdateUserProfile(user);
+            await _repo.SaveQuestProgressAsync(quest);
+            await _repo.UpdateUserProfileAsync(user);
 
             OnPropertyChanged(nameof(CurrentUser));
             PublishQuests();
         }
 
-        private void LoadQuests()
+        private async Task LoadQuestsAsync(CancellationToken ct = default)
         {
             var user = RequireUser();
             var today = DateOnly.FromDateTime(_clock.Now);
 
-            var todays = _repo.EnsureDailyQuests(user.UserId, today);
+            var todays = await _repo.EnsureDailyQuestsAsync(user.UserId, today, ct);
             user.Quests.Clear();
             user.Quests.AddRange(todays);
             _questDate = today;
 
             user.Pet ??= new EcoPet(Guid.NewGuid().ToString(), user.UserId);
             user.Pet.UpdateState(CoinsEarnedToday());
-            _repo.UpdateUserProfile(user);
+            await _repo.UpdateUserProfileAsync(user, ct);
 
             PublishQuests();
         }
 
-        private void RefreshCore(User user, WeatherData? weather, bool weatherFailed)
+        private async Task RefreshCoreAsync(User user, WeatherData? weather, bool weatherFailed, CancellationToken ct)
         {
             if (DateOnly.FromDateTime(_clock.Now) != _questDate)
-                LoadQuests(); // new day: fresh quests, pet recomputed
+                await LoadQuestsAsync(ct); // new day: fresh quests, pet recomputed
 
             if (weather is not null)
             {
@@ -240,7 +236,7 @@ namespace EcoKoin.ViewModels
             EstimatedWattSaved = PowerService.CalculateWattSaved();
 
             var now = _clock.Now;
-            WeeklyReport = new CarbonFinancialReport(_repo.GetWeeklyReportData(user.UserId, now), DateOnly.FromDateTime(now));
+            WeeklyReport = new CarbonFinancialReport(await _repo.GetWeeklyReportDataAsync(user.UserId, now, ct), DateOnly.FromDateTime(now));
 
             PublishQuests();
             RaiseCommandStates();
@@ -256,7 +252,13 @@ namespace EcoKoin.ViewModels
         private int CoinsEarnedToday() => CurrentUser!.Quests.Where(q => q.IsClaimed).Sum(q => q.RewardCoin);
 
         private User RequireUser() =>
-            CurrentUser ?? throw new InvalidOperationException("Call Initialize(username) first.");
+            CurrentUser ?? throw new InvalidOperationException("Call InitializeAsync(username) first.");
+
+        private void OnCommandFailed(Exception ex)
+        {
+            LastError = ex;
+            CommandFailed?.Invoke(this, ex);
+        }
 
         private void RaiseCommandStates()
         {
