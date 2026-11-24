@@ -323,5 +323,19 @@ public class MainViewModelTests : IAsyncLifetime, IDisposable
         public Task<IReadOnlyList<PowerSession>> GetWeeklyReportDataAsync(string userId, DateTime now, CancellationToken ct = default) { Check(FailReads); return inner.GetWeeklyReportDataAsync(userId, now, ct); }
         public Task<IReadOnlyList<PowerScheme>> GetPowerSchemesAsync(CancellationToken ct = default) => inner.GetPowerSchemesAsync(ct);
         public Task<IReadOnlyList<DailyQuest>> EnsureDailyQuestsAsync(string userId, DateOnly date, CancellationToken ct = default) => inner.EnsureDailyQuestsAsync(userId, date, ct);
+        public Task RecordPowerSaverMinuteAsync(string userId, string questId, DateOnly date, long sampleMinute, CancellationToken ct = default) { Check(FailWrites); return inner.RecordPowerSaverMinuteAsync(userId, questId, date, sampleMinute, ct); }
+        public Task<long> GetPowerSaverMinutesAsync(string userId, DateOnly startDate, DateOnly endDate, CancellationToken ct = default) { Check(FailReads); return inner.GetPowerSaverMinutesAsync(userId, startDate, endDate, ct); }
+        public Task<bool> TryClaimPowerSaverQuestAsync(string userId, string questId, DateOnly date, CancellationToken ct = default) { Check(FailWrites); return inner.TryClaimPowerSaverQuestAsync(userId, questId, date, ct); }
+        public Task<bool> TryApplyWeatherQuestAsync(string userId, DateOnly date, CancellationToken ct = default) { Check(FailWrites); return inner.TryApplyWeatherQuestAsync(userId, date, ct); }
+        public Task<bool> TryClaimWeatherQuestAsync(string userId, DateOnly date, CancellationToken ct = default) { Check(FailWrites); return inner.TryClaimWeatherQuestAsync(userId, date, ct); }
+        public Task<int> GetCoinsEarnedTodayAsync(string userId, DateOnly date, CancellationToken ct = default) { Check(FailReads); return inner.GetCoinsEarnedTodayAsync(userId, date, ct); }
+        public Task<IReadOnlyDictionary<DateOnly, long>> GetDailyPowerSaverMinutesAsync(string userId, DateOnly startDate, DateOnly endDate, CancellationToken ct = default) { Check(FailReads); return inner.GetDailyPowerSaverMinutesAsync(userId, startDate, endDate, ct); }
+        public Task<IReadOnlyList<PowerSession>> GetPowerSessionsAsync(string userId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default) { Check(FailReads); return inner.GetPowerSessionsAsync(userId, fromInclusive, toExclusive, ct); }
+        public Task<int> GetTotalEcoKoinAsync(string userId, CancellationToken ct = default) { Check(FailReads); return inner.GetTotalEcoKoinAsync(userId, ct); }
+        public Task<int> GetKoinEarnedOnAsync(string userId, DateOnly date, CancellationToken ct = default) { Check(FailReads); return inner.GetKoinEarnedOnAsync(userId, date, ct); }
+        public Task<IReadOnlyList<(DateOnly Date, int Koin)>> GetKoinEarnedPerDayAsync(string userId, DateOnly fromInclusive, DateOnly toInclusive, CancellationToken ct = default) { Check(FailReads); return inner.GetKoinEarnedPerDayAsync(userId, fromInclusive, toInclusive, ct); }
+        public Task<bool> TryClaimQuestAsync(string userId, string questId, DateOnly date, CancellationToken ct = default) { Check(FailWrites); return inner.TryClaimQuestAsync(userId, questId, date, ct); }
+        public Task<int> AddQuestProgressAsync(string userId, QuestType type, DateOnly date, int amount, CancellationToken ct = default) { Check(FailWrites); return inner.AddQuestProgressAsync(userId, type, date, amount, ct); }
+        public Task<EcoPet> GetOrCreatePetAsync(string userId, DateOnly today, CancellationToken ct = default) { Check(FailWrites); return inner.GetOrCreatePetAsync(userId, today, ct); }
     }
 }

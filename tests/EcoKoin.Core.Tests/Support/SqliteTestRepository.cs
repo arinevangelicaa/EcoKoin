@@ -47,6 +47,14 @@ namespace EcoKoin.Core.Tests.Support
                 command.ExecuteNonQuery();
             }
 
+            // Databases created before Power Saver minute tracking have no tracked_minutes column.
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('POWER_SAVER_PROGRESS') WHERE name = 'tracked_minutes';";
+            if ((long)command.ExecuteScalar()! == 0)
+            {
+                command.CommandText = "ALTER TABLE POWER_SAVER_PROGRESS ADD COLUMN tracked_minutes INTEGER;";
+                command.ExecuteNonQuery();
+            }
+
             command.CommandText = seedSql;
             command.ExecuteNonQuery();
             tx.Commit();
@@ -265,7 +273,9 @@ namespace EcoKoin.Core.Tests.Support
         private IReadOnlyList<DailyQuest> EnsureDailyQuestsCore(string userId, DateOnly date)
         {
             using var connection = OpenConnection();
-            using var tx = connection.BeginTransaction();
+            // BEGIN IMMEDIATE: this reads (COUNT) and then writes. With a deferred transaction two concurrent
+            // callers both read, then one write fails at once with SQLITE_BUSY instead of waiting for the other.
+            using var tx = connection.BeginTransaction(deferred: false);
 
             long existing;
             using (var cmd = connection.CreateCommand())
@@ -303,6 +313,386 @@ namespace EcoKoin.Core.Tests.Support
             return quests;
         }
 
+        private void RecordPowerSaverMinuteCore(string userId, string questId, DateOnly date, long sampleMinute)
+        {
+            using var connection = OpenConnection();
+            using var tx = connection.BeginTransaction();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                INSERT INTO POWER_SAVER_PROGRESS (quest_id, last_sample_minute, tracked_minutes)
+                SELECT quest_id, $minute, current_progress + 1 FROM DAILY_QUESTS
+                WHERE quest_id = $quest AND user_id = $user AND quest_date = $date
+                  AND quest_type = 'PowerSaver'
+                ON CONFLICT(quest_id) DO UPDATE SET last_sample_minute = excluded.last_sample_minute,
+                    tracked_minutes = COALESCE(POWER_SAVER_PROGRESS.tracked_minutes + 1, excluded.tracked_minutes)
+                WHERE excluded.last_sample_minute > POWER_SAVER_PROGRESS.last_sample_minute;";
+            AddPowerSaverParameters(cmd, userId, questId, date);
+            cmd.Parameters.AddWithValue("$minute", sampleMinute);
+            if (cmd.ExecuteNonQuery() == 1)
+            {
+                cmd.CommandText = @"UPDATE DAILY_QUESTS SET current_progress = current_progress + 1
+                                    WHERE quest_id = $quest AND is_claimed = 0 AND current_progress < target_value;";
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        }
+
+        private long GetPowerSaverMinutesCore(string userId, DateOnly startDate, DateOnly endDate)
+        {
+            using var connection = OpenConnection();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT COALESCE(SUM(COALESCE(p.tracked_minutes, q.current_progress)), 0)
+                FROM DAILY_QUESTS q
+                LEFT JOIN POWER_SAVER_PROGRESS p ON p.quest_id = q.quest_id
+                WHERE q.user_id = $user AND q.quest_type = 'PowerSaver'
+                  AND q.quest_date BETWEEN $start AND $end;";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$start", startDate.ToString(DateFormat, CultureInfo.InvariantCulture));
+            cmd.Parameters.AddWithValue("$end", endDate.ToString(DateFormat, CultureInfo.InvariantCulture));
+            return (long)cmd.ExecuteScalar()!;
+        }
+
+        private bool TryClaimPowerSaverQuestCore(string userId, string questId, DateOnly date)
+        {
+            using var connection = OpenConnection();
+            using var tx = connection.BeginTransaction();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                UPDATE DAILY_QUESTS SET is_claimed = 1
+                WHERE quest_id = $quest AND user_id = $user AND quest_date = $date
+                  AND quest_type = 'PowerSaver' AND is_claimed = 0 AND current_progress >= target_value
+                RETURNING reward_coin;";
+            AddPowerSaverParameters(cmd, userId, questId, date);
+            if (cmd.ExecuteScalar() is not long reward)
+                return false;
+
+            cmd.CommandText = "UPDATE USERS SET total_ecokoin = total_ecokoin + $reward WHERE user_id = $user;";
+            cmd.Parameters.AddWithValue("$reward", reward);
+            cmd.ExecuteNonQuery();
+
+            UpdatePetStateInTransaction(connection, tx, userId, date);
+
+            tx.Commit();
+            return true;
+        }
+
+        private bool TryApplyWeatherQuestCore(string userId, DateOnly date)
+        {
+            using var connection = OpenConnection();
+            using var tx = connection.BeginTransaction();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                UPDATE DAILY_QUESTS
+                SET current_progress = target_value
+                WHERE user_id = $user AND quest_date = $date AND quest_type = 'WeatherAdaptive' AND is_claimed = 0;";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$date", date.ToString(DateFormat, CultureInfo.InvariantCulture));
+            int rows = cmd.ExecuteNonQuery();
+            tx.Commit();
+            return rows > 0;
+        }
+
+        private bool TryClaimWeatherQuestCore(string userId, DateOnly date)
+        {
+            using var connection = OpenConnection();
+            using var tx = connection.BeginTransaction();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                UPDATE DAILY_QUESTS SET is_claimed = 1
+                WHERE user_id = $user AND quest_date = $date
+                  AND quest_type = 'WeatherAdaptive' AND is_claimed = 0 AND current_progress >= target_value
+                RETURNING reward_coin;";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$date", date.ToString(DateFormat, CultureInfo.InvariantCulture));
+            if (cmd.ExecuteScalar() is not long reward)
+                return false;
+
+            cmd.CommandText = "UPDATE USERS SET total_ecokoin = total_ecokoin + $reward WHERE user_id = $user;";
+            cmd.Parameters.AddWithValue("$reward", reward);
+            cmd.ExecuteNonQuery();
+
+            UpdatePetStateInTransaction(connection, tx, userId, date);
+
+            tx.Commit();
+            return true;
+        }
+
+        private int GetCoinsEarnedTodayCore(string userId, DateOnly date)
+        {
+            using var connection = OpenConnection();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT COALESCE(SUM(reward_coin), 0)
+                FROM DAILY_QUESTS
+                WHERE user_id = $user AND quest_date = $date AND is_claimed = 1;";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$date", date.ToString(DateFormat, CultureInfo.InvariantCulture));
+            return Convert.ToInt32(cmd.ExecuteScalar()!);
+        }
+
+        private IReadOnlyDictionary<DateOnly, long> GetDailyPowerSaverMinutesCore(string userId, DateOnly startDate, DateOnly endDate)
+        {
+            var dict = new Dictionary<DateOnly, long>();
+            using var connection = OpenConnection();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT q.quest_date, COALESCE(SUM(COALESCE(p.tracked_minutes, q.current_progress)), 0)
+                FROM DAILY_QUESTS q
+                LEFT JOIN POWER_SAVER_PROGRESS p ON p.quest_id = q.quest_id
+                WHERE q.user_id = $user AND q.quest_type = 'PowerSaver'
+                  AND q.quest_date BETWEEN $start AND $end
+                GROUP BY q.quest_date;";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$start", startDate.ToString(DateFormat, CultureInfo.InvariantCulture));
+            cmd.Parameters.AddWithValue("$end", endDate.ToString(DateFormat, CultureInfo.InvariantCulture));
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var d = DateOnly.ParseExact(reader.GetString(0), DateFormat, CultureInfo.InvariantCulture);
+                dict[d] = reader.GetInt64(1);
+            }
+            return dict;
+        }
+
+        private static void UpdatePetStateInTransaction(SqliteConnection connection, SqliteTransaction tx, string userId, DateOnly date)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                SELECT COALESCE(SUM(reward_coin), 0)
+                FROM DAILY_QUESTS
+                WHERE user_id = $user AND quest_date = $date AND is_claimed = 1;";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$date", date.ToString(DateFormat, CultureInfo.InvariantCulture));
+            long coinsToday = (long)cmd.ExecuteScalar()!;
+
+            int happiness = (int)Math.Clamp(coinsToday * 3, 0, 100);
+            string state = coinsToday >= 30 ? "Segar" : coinsToday >= 10 ? "Normal" : "Lemas";
+
+            cmd.CommandText = @"
+                INSERT INTO ECO_PETS (pet_id, user_id, happiness_level, current_state)
+                VALUES ($pid, $user, $happy, $state)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    happiness_level = excluded.happiness_level,
+                    current_state = excluded.current_state;";
+            cmd.Parameters.AddWithValue("$pid", "pet_" + userId);
+            cmd.Parameters.AddWithValue("$happy", happiness);
+            cmd.Parameters.AddWithValue("$state", state);
+            cmd.ExecuteNonQuery();
+        }
+
+        private static void AddPowerSaverParameters(SqliteCommand cmd, string userId, string questId, DateOnly date)
+        {
+            cmd.Parameters.AddWithValue("$quest", questId);
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$date", date.ToString(DateFormat, CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>Sessions of <paramref name="userId"/> with start_time in [from, to) ordered by start_time; open sessions (end_time NULL) included.</summary>
+        private IReadOnlyList<PowerSession> GetPowerSessionsCore(string userId, DateTime fromInclusive, DateTime toExclusive)
+        {
+            var result = new List<PowerSession>();
+
+            using var connection = OpenConnection();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"SELECT session_id, user_id, scheme_id, start_time, end_time, watt_saved
+                                FROM POWER_SESSIONS
+                                WHERE user_id = $uid AND start_time >= $from AND start_time < $to
+                                ORDER BY start_time ASC, rowid ASC;";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            cmd.Parameters.AddWithValue("$from", FormatDateTime(fromInclusive));
+            cmd.Parameters.AddWithValue("$to", FormatDateTime(toExclusive));
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(new PowerSession(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    ParseDateTime(reader.GetString(3)),
+                    reader.IsDBNull(4) ? null : ParseDateTime(reader.GetString(4)),
+                    reader.GetDouble(5)));
+            }
+
+            return result;
+        }
+
+        /// <summary>USERS.total_ecokoin of <paramref name="userId"/>; 0 if the user does not exist.</summary>
+        private int GetTotalEcoKoinCore(string userId)
+        {
+            using var connection = OpenConnection();
+            return ReadTotalEcoKoin(connection, null, userId);
+        }
+
+        /// <summary>Sum of reward_coin of the user's claimed quests whose quest_date is <paramref name="date"/> (0 if none).</summary>
+        private int GetKoinEarnedOnCore(string userId, DateOnly date)
+        {
+            using var connection = OpenConnection();
+            return ReadKoinEarnedOn(connection, null, userId, date);
+        }
+
+        /// <summary>
+        /// Claimed koin per calendar day: exactly one entry per day in [from, to] (inclusive), ascending, 0 where nothing
+        /// was claimed. An inverted range yields an empty list.
+        /// </summary>
+        private IReadOnlyList<(DateOnly Date, int Koin)> GetKoinEarnedPerDayCore(string userId, DateOnly fromInclusive, DateOnly toInclusive)
+        {
+            var result = new List<(DateOnly Date, int Koin)>();
+            if (toInclusive < fromInclusive)
+                return result;
+
+            var byDay = new Dictionary<DateOnly, int>();
+            using (var connection = OpenConnection())
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.CommandText = @"SELECT quest_date, SUM(reward_coin) FROM DAILY_QUESTS
+                                    WHERE user_id = $uid AND is_claimed = 1
+                                      AND quest_date >= $from AND quest_date <= $to
+                                    GROUP BY quest_date;";
+                cmd.Parameters.AddWithValue("$uid", userId);
+                cmd.Parameters.AddWithValue("$from", fromInclusive.ToString(DateFormat, CultureInfo.InvariantCulture));
+                cmd.Parameters.AddWithValue("$to", toInclusive.ToString(DateFormat, CultureInfo.InvariantCulture));
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    byDay[DateOnly.ParseExact(reader.GetString(0), DateFormat, CultureInfo.InvariantCulture)] =
+                        (int)reader.GetInt64(1);
+                }
+            }
+
+            for (var day = fromInclusive; day <= toInclusive; day = day.AddDays(1))
+                result.Add((day, byDay.GetValueOrDefault(day)));
+            return result;
+        }
+
+        /// <summary>
+        /// Atomically claims a quest of ANY type: only if it belongs to the user, has quest_date <paramref name="date"/>,
+        /// is unclaimed and current_progress &gt;= target_value. Adds reward_coin to USERS.total_ecokoin in the same
+        /// transaction. Returns true only when this call claimed it.
+        /// </summary>
+        private bool TryClaimQuestCore(string userId, string questId, DateOnly date)
+        {
+            using var connection = OpenConnection();
+            using var tx = connection.BeginTransaction();
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                UPDATE DAILY_QUESTS SET is_claimed = 1
+                WHERE quest_id = $quest AND user_id = $user AND quest_date = $date
+                  AND is_claimed = 0 AND current_progress >= target_value
+                RETURNING reward_coin;";
+            AddPowerSaverParameters(cmd, userId, questId, date);
+            if (cmd.ExecuteScalar() is not long reward)
+                return false;
+
+            cmd.CommandText = "UPDATE USERS SET total_ecokoin = total_ecokoin + $reward WHERE user_id = $user;";
+            cmd.Parameters.AddWithValue("$reward", reward);
+            cmd.ExecuteNonQuery();
+            tx.Commit();
+            return true;
+        }
+
+        /// <summary>
+        /// Adds <paramref name="amount"/> to the user's Sleep or WeatherAdaptive quest of <paramref name="date"/>, clamped to
+        /// target_value, only while it is unclaimed. Returns the new current_progress, or -1 if the quest does not exist or is
+        /// already claimed. PowerSaver progress is owned by <see cref="IAppRepository.RecordPowerSaverMinuteAsync"/>.
+        /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="type"/> is PowerSaver (or not a valid quest type).</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="amount"/> is not positive.</exception>
+        private int AddQuestProgressCore(string userId, QuestType type, DateOnly date, int amount)
+        {
+            if (type == QuestType.PowerSaver)
+                throw new ArgumentException("PowerSaver progress is recorded with RecordPowerSaverMinute.", nameof(type));
+            if (type != QuestType.Sleep && type != QuestType.WeatherAdaptive)
+                throw new ArgumentException($"Unsupported quest type '{type}'.", nameof(type));
+            if (amount <= 0)
+                throw new ArgumentOutOfRangeException(nameof(amount), amount, "Amount must be positive.");
+
+            using var connection = OpenConnection();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                UPDATE DAILY_QUESTS
+                SET current_progress = MIN(current_progress + $amount, target_value)
+                WHERE user_id = $user AND quest_type = $type AND quest_date = $date AND is_claimed = 0
+                RETURNING current_progress;";
+            cmd.Parameters.AddWithValue("$amount", amount);
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$type", type.ToString());
+            cmd.Parameters.AddWithValue("$date", date.ToString(DateFormat, CultureInfo.InvariantCulture));
+            return cmd.ExecuteScalar() is long progress ? (int)progress : -1;
+        }
+
+        /// <summary>
+        /// Loads the user's pet (creating it if missing), refreshes it with <c>UpdateState(GetKoinEarnedOn(userId, today))</c>,
+        /// persists happiness_level + current_state and returns it.
+        /// </summary>
+        private EcoPet GetOrCreatePetCore(string userId, DateOnly today)
+        {
+            using var connection = OpenConnection();
+            using var tx = connection.BeginTransaction();
+
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = @"INSERT OR IGNORE INTO ECO_PETS (pet_id, user_id, happiness_level, current_state)
+                                    VALUES ($pid, $uid, 0, 'Lemas');";
+                cmd.Parameters.AddWithValue("$pid", Guid.NewGuid().ToString());
+                cmd.Parameters.AddWithValue("$uid", userId);
+                cmd.ExecuteNonQuery();
+            }
+
+            EcoPet pet;
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = "SELECT pet_id, happiness_level, current_state FROM ECO_PETS WHERE user_id = $uid;";
+                cmd.Parameters.AddWithValue("$uid", userId);
+                using var reader = cmd.ExecuteReader();
+                reader.Read();
+                pet = new EcoPet(reader.GetString(0), userId, reader.GetInt32(1), Enum.Parse<PetState>(reader.GetString(2)));
+            }
+
+            pet.UpdateState(ReadKoinEarnedOn(connection, tx, userId, today));
+
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = "UPDATE ECO_PETS SET happiness_level = $happy, current_state = $state WHERE pet_id = $pid;";
+                cmd.Parameters.AddWithValue("$happy", pet.HappinessLevel);
+                cmd.Parameters.AddWithValue("$state", pet.CurrentState.ToString());
+                cmd.Parameters.AddWithValue("$pid", pet.PetId);
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return pet;
+        }
+
+        private static int ReadTotalEcoKoin(SqliteConnection connection, SqliteTransaction? tx, string userId)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "SELECT total_ecokoin FROM USERS WHERE user_id = $uid;";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            return cmd.ExecuteScalar() is long total ? (int)total : 0;
+        }
+
+        private static int ReadKoinEarnedOn(SqliteConnection connection, SqliteTransaction? tx, string userId, DateOnly date)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"SELECT COALESCE(SUM(reward_coin), 0) FROM DAILY_QUESTS
+                                WHERE user_id = $uid AND quest_date = $date AND is_claimed = 1;";
+            cmd.Parameters.AddWithValue("$uid", userId);
+            cmd.Parameters.AddWithValue("$date", date.ToString(DateFormat, CultureInfo.InvariantCulture));
+            return (int)Convert.ToInt64(cmd.ExecuteScalar());
+        }
+
         // ---- IAppRepository (async facade over the synchronous SQLite work) -------------------
 
         public Task InitializeDatabaseAsync(CancellationToken ct = default)
@@ -331,6 +721,49 @@ namespace EcoKoin.Core.Tests.Support
 
         public Task<IReadOnlyList<DailyQuest>> EnsureDailyQuestsAsync(string userId, DateOnly date, CancellationToken ct = default)
             => Run(ct, () => EnsureDailyQuestsCore(userId, date));
+
+        public Task RecordPowerSaverMinuteAsync(string userId, string questId, DateOnly date, long sampleMinute, CancellationToken ct = default)
+            => Run(ct, () => RecordPowerSaverMinuteCore(userId, questId, date, sampleMinute));
+
+        public Task<long> GetPowerSaverMinutesAsync(string userId, DateOnly startDate, DateOnly endDate, CancellationToken ct = default)
+            => Run(ct, () => GetPowerSaverMinutesCore(userId, startDate, endDate));
+
+        public Task<bool> TryClaimPowerSaverQuestAsync(string userId, string questId, DateOnly date, CancellationToken ct = default)
+            => Run(ct, () => TryClaimPowerSaverQuestCore(userId, questId, date));
+
+        public Task<bool> TryApplyWeatherQuestAsync(string userId, DateOnly date, CancellationToken ct = default)
+            => Run(ct, () => TryApplyWeatherQuestCore(userId, date));
+
+        public Task<bool> TryClaimWeatherQuestAsync(string userId, DateOnly date, CancellationToken ct = default)
+            => Run(ct, () => TryClaimWeatherQuestCore(userId, date));
+
+        public Task<int> GetCoinsEarnedTodayAsync(string userId, DateOnly date, CancellationToken ct = default)
+            => Run(ct, () => GetCoinsEarnedTodayCore(userId, date));
+
+        public Task<IReadOnlyDictionary<DateOnly, long>> GetDailyPowerSaverMinutesAsync(string userId, DateOnly startDate, DateOnly endDate, CancellationToken ct = default)
+            => Run(ct, () => GetDailyPowerSaverMinutesCore(userId, startDate, endDate));
+
+        public Task<IReadOnlyList<PowerSession>> GetPowerSessionsAsync(string userId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default)
+            => Run(ct, () => GetPowerSessionsCore(userId, fromInclusive, toExclusive));
+
+        public Task<int> GetTotalEcoKoinAsync(string userId, CancellationToken ct = default)
+            => Run(ct, () => GetTotalEcoKoinCore(userId));
+
+        public Task<int> GetKoinEarnedOnAsync(string userId, DateOnly date, CancellationToken ct = default)
+            => Run(ct, () => GetKoinEarnedOnCore(userId, date));
+
+        public Task<IReadOnlyList<(DateOnly Date, int Koin)>> GetKoinEarnedPerDayAsync(string userId, DateOnly fromInclusive, DateOnly toInclusive, CancellationToken ct = default)
+            => Run(ct, () => GetKoinEarnedPerDayCore(userId, fromInclusive, toInclusive));
+
+        public Task<bool> TryClaimQuestAsync(string userId, string questId, DateOnly date, CancellationToken ct = default)
+            => Run(ct, () => TryClaimQuestCore(userId, questId, date));
+
+        /// <remarks>Argument validation errors are delivered through the returned task, like every other failure.</remarks>
+        public Task<int> AddQuestProgressAsync(string userId, QuestType type, DateOnly date, int amount, CancellationToken ct = default)
+            => Run(ct, () => AddQuestProgressCore(userId, type, date, amount));
+
+        public Task<EcoPet> GetOrCreatePetAsync(string userId, DateOnly today, CancellationToken ct = default)
+            => Run(ct, () => GetOrCreatePetCore(userId, today));
 
         /// <summary>Runs the work synchronously; exceptions are delivered through the returned task.</summary>
         private static Task Run(CancellationToken ct, Action work)
