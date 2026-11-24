@@ -4,6 +4,8 @@ Dokumen 1–7 menjelaskan **kondisi target**. Dokumen ini satu-satunya yang menc
 
 Snapshot: 2026-11-24, branch `544058`. Persyaratan tugas **tidak mengizinkan database lokal**; seluruh penyimpanan kini diarahkan ke PostgreSQL remote.
 
+Update 2026-11-24 (sore): `origin/main` (PR #29–#36 dari tim UI: cuaca, quest Power Saver, Ingat saya, dashboard dengan data nyata) sudah digabung ke `544058`. Method repository baru dari tim UI dipindahkan ke `IAppRepository` (async), `PostgresRepository`, dan suite kontrak; seluruh pemanggil di `EcoKoin.WPF` memakai API async. Suite tes (283 tes) lulus di SQLite dan PostgreSQL. UI belum diuji pada Windows.
+
 ## Riwayat
 
 | Tahap | Isi | Referensi |
