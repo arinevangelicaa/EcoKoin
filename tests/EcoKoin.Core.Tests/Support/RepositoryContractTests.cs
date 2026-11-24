@@ -344,4 +344,187 @@ public abstract class RepositoryContractTests : IAsyncLifetime
         await Repo.SaveUserAsync(NewUser());
         Assert.Empty((await Repo.GetUserByUsernameAsync("hermione"))!.Quests);
     }
+
+    // ---- Power Saver and weather quest flows (ported from the teammate's SQLite-only tests) ----
+
+    [SkippableFact]
+    public async Task PowerSaverQuest_OnlyCreditsEachMinuteAndClaimOnce()
+    {
+        var user = NewUser(coins: 5);
+        var otherUser = NewUser(id: "u2", name: "second");
+        await Repo.SaveUserAsync(user);
+        await Repo.SaveUserAsync(otherUser);
+        var quest = new PowerSaverQuest("power-quest", user.UserId, "Power Saver", 240, 20, Today, 239);
+        await Repo.SaveQuestProgressAsync(quest);
+
+        Assert.False(await Repo.TryClaimPowerSaverQuestAsync(user.UserId, quest.QuestId, Today));
+        await Repo.RecordPowerSaverMinuteAsync(otherUser.UserId, quest.QuestId, Today, 500);
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, quest.QuestId, Today.AddDays(1), 500);
+        Assert.Equal(239, (await Repo.EnsureDailyQuestsAsync(user.UserId, Today)).Single().CurrentProgress);
+
+        await Task.WhenAll(Enumerable.Range(0, 8)
+            .Select(_ => Task.Run(() => Repo.RecordPowerSaverMinuteAsync(user.UserId, quest.QuestId, Today, 500))));
+        Assert.Equal(240, (await Repo.EnsureDailyQuestsAsync(user.UserId, Today)).Single().CurrentProgress);
+        Assert.False(await Repo.TryClaimPowerSaverQuestAsync(otherUser.UserId, quest.QuestId, Today));
+
+        var claims = await Task.WhenAll(Enumerable.Range(0, 8)
+            .Select(_ => Task.Run(() => Repo.TryClaimPowerSaverQuestAsync(user.UserId, quest.QuestId, Today))));
+        Assert.Equal(1, claims.Count(claimed => claimed));
+        Assert.Equal(25, (await Repo.GetUserByUsernameAsync(user.Username))!.TotalEcoKoin);
+        Assert.True((await Repo.EnsureDailyQuestsAsync(user.UserId, Today)).Single().IsClaimed);
+        Assert.Equal(0, (await Repo.GetUserByUsernameAsync(otherUser.Username))!.TotalEcoKoin);
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, quest.QuestId, Today, 500);
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, quest.QuestId, Today, 501);
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, quest.QuestId, Today, 501);
+        Assert.Equal(240, (await Repo.EnsureDailyQuestsAsync(user.UserId, Today)).Single().CurrentProgress);
+        Assert.False(await Repo.TryClaimPowerSaverQuestAsync(user.UserId, quest.QuestId, Today));
+        Assert.Equal(25, (await Repo.GetUserByUsernameAsync(user.Username))!.TotalEcoKoin);
+
+        var yesterday = Today.AddDays(-1);
+        var yesterdayQuest = (await Repo.EnsureDailyQuestsAsync(user.UserId, yesterday)).OfType<PowerSaverQuest>().Single();
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, yesterdayQuest.QuestId, yesterday, 10);
+        Assert.Equal(242L, await Repo.GetPowerSaverMinutesAsync(user.UserId, Today.AddDays(-6), Today));
+        Assert.Equal(241L, await Repo.GetPowerSaverMinutesAsync(user.UserId, Today, Today));
+        Assert.Equal(0L, await Repo.GetPowerSaverMinutesAsync(otherUser.UserId, Today.AddDays(-6), Today));
+    }
+
+    [SkippableFact]
+    public async Task GetPowerSaverMinutes_EmptyUserAndDateRanges_ReturnsZeroAndFiltersCorrectly()
+    {
+        var user = NewUser("u_fresh", "freshuser");
+        await Repo.SaveUserAsync(user);
+
+        Assert.Equal(0L, await Repo.GetPowerSaverMinutesAsync(user.UserId, Today.AddDays(-6), Today));
+
+        var oldDate = Today.AddDays(-8);
+        var oldQuest = (await Repo.EnsureDailyQuestsAsync(user.UserId, oldDate)).OfType<PowerSaverQuest>().Single();
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, oldQuest.QuestId, oldDate, 100);
+
+        Assert.Equal(0L, await Repo.GetPowerSaverMinutesAsync(user.UserId, Today.AddDays(-6), Today));
+        Assert.Equal(1L, await Repo.GetPowerSaverMinutesAsync(user.UserId, Today.AddDays(-10), Today));
+    }
+
+    [SkippableFact]
+    public async Task PowerSaverFlow_ProgressToClaimToPersistedBalance_VerifiesFullLifecycle()
+    {
+        // 1. Akun baru dengan saldo 0
+        var user = NewUser("u_demo", "demouser", coins: 0);
+        await Repo.SaveUserAsync(user);
+
+        var date = Today;
+        var quests = await Repo.EnsureDailyQuestsAsync(user.UserId, date);
+        var powerQuest = quests.OfType<PowerSaverQuest>().Single();
+
+        Assert.Equal(0, powerQuest.CurrentProgress);
+        Assert.Equal(240, powerQuest.TargetValue);
+        Assert.Equal(20, powerQuest.RewardCoin);
+        Assert.False(powerQuest.IsClaimed);
+        Assert.False(powerQuest.CheckCompletion());
+        Assert.Equal(0L, await Repo.GetPowerSaverMinutesAsync(user.UserId, date.AddDays(-6), date));
+
+        // 2. Simulasi penambahan menit bertahap hingga 239 menit
+        for (int m = 1; m <= 239; m++)
+            await Repo.RecordPowerSaverMinuteAsync(user.UserId, powerQuest.QuestId, date, m);
+
+        powerQuest = (await Repo.EnsureDailyQuestsAsync(user.UserId, date)).OfType<PowerSaverQuest>().Single();
+        Assert.Equal(239, powerQuest.CurrentProgress);
+        Assert.False(powerQuest.CheckCompletion());
+        Assert.False(await Repo.TryClaimPowerSaverQuestAsync(user.UserId, powerQuest.QuestId, date));
+        Assert.Equal(0, (await Repo.GetUserByUsernameAsync(user.Username))!.TotalEcoKoin);
+        Assert.Equal(239L, await Repo.GetPowerSaverMinutesAsync(user.UserId, date.AddDays(-6), date));
+
+        // 3. Menit ke-240 tercapai (target selesai)
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, powerQuest.QuestId, date, 240);
+        powerQuest = (await Repo.EnsureDailyQuestsAsync(user.UserId, date)).OfType<PowerSaverQuest>().Single();
+        Assert.Equal(240, powerQuest.CurrentProgress);
+        Assert.True(powerQuest.CheckCompletion());
+
+        // 4. Klaim reward dijalankan
+        Assert.True(await Repo.TryClaimPowerSaverQuestAsync(user.UserId, powerQuest.QuestId, date));
+
+        // Saldo bertambah +20 koin dan quest tercatat diklaim
+        var userAfterClaim = (await Repo.GetUserByUsernameAsync(user.Username))!;
+        Assert.Equal(20, userAfterClaim.TotalEcoKoin);
+        powerQuest = (await Repo.EnsureDailyQuestsAsync(user.UserId, date)).OfType<PowerSaverQuest>().Single();
+        Assert.True(powerQuest.IsClaimed);
+
+        // 5. Klaim ganda dicegah
+        Assert.False(await Repo.TryClaimPowerSaverQuestAsync(user.UserId, powerQuest.QuestId, date));
+        Assert.Equal(20, (await Repo.GetUserByUsernameAsync(user.Username))!.TotalEcoKoin);
+
+        // 6. Penggunaan terus berlanjut setelah klaim (melebihi 240 menit)
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, powerQuest.QuestId, date, 241);
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, powerQuest.QuestId, date, 242);
+
+        // Quest tetap capped di 240, tetapi Analisis melacak durasi aktual 242 menit
+        powerQuest = (await Repo.EnsureDailyQuestsAsync(user.UserId, date)).OfType<PowerSaverQuest>().Single();
+        Assert.Equal(240, powerQuest.CurrentProgress);
+        Assert.Equal(242L, await Repo.GetPowerSaverMinutesAsync(user.UserId, date.AddDays(-6), date));
+
+        // 7. Aplikasi ditutup dan dibuka kembali: semua data tetap ada di database (setiap panggilan membaca ulang dari DB)
+        var reloadedUser = (await Repo.GetUserByUsernameAsync(user.Username))!;
+        var reloadedQuest = (await Repo.EnsureDailyQuestsAsync(user.UserId, date)).OfType<PowerSaverQuest>().Single();
+
+        Assert.Equal(20, reloadedUser.TotalEcoKoin);
+        Assert.True(reloadedQuest.IsClaimed);
+        Assert.Equal(240, reloadedQuest.CurrentProgress);
+        Assert.Equal(242L, await Repo.GetPowerSaverMinutesAsync(user.UserId, date.AddDays(-6), date));
+        Assert.False(await Repo.TryClaimPowerSaverQuestAsync(user.UserId, powerQuest.QuestId, date));
+    }
+
+    [SkippableFact]
+    public async Task WeatherAdaptiveQuest_Apply_Claim_And_PetStateLifecycle()
+    {
+        var user = NewUser("u-weather", "weather_tester", coins: 0);
+        await Repo.SaveUserAsync(user);
+        var quests = await Repo.EnsureDailyQuestsAsync(user.UserId, Today);
+        var powerQuest = quests.OfType<PowerSaverQuest>().Single();
+
+        Assert.Equal(0, await Repo.GetCoinsEarnedTodayAsync(user.UserId, Today));
+        Assert.False(await Repo.TryClaimWeatherQuestAsync(user.UserId, Today));
+
+        Assert.True(await Repo.TryApplyWeatherQuestAsync(user.UserId, Today));
+        var updatedQuests = await Repo.EnsureDailyQuestsAsync(user.UserId, Today);
+        Assert.Equal(1, updatedQuests.OfType<WeatherAdaptiveQuest>().Single().CurrentProgress);
+
+        Assert.True(await Repo.TryClaimWeatherQuestAsync(user.UserId, Today));
+        Assert.False(await Repo.TryClaimWeatherQuestAsync(user.UserId, Today));
+
+        var userAfterWeather = (await Repo.GetUserByUsernameAsync(user.Username))!;
+        Assert.Equal(15, userAfterWeather.TotalEcoKoin);
+        Assert.Equal(15, await Repo.GetCoinsEarnedTodayAsync(user.UserId, Today));
+        Assert.NotNull(userAfterWeather.Pet);
+        Assert.Equal(PetState.Normal, userAfterWeather.Pet.CurrentState);
+        Assert.Equal(45, userAfterWeather.Pet.HappinessLevel);
+
+        // Advance power saver to target and claim
+        for (int i = 0; i < 240; i++)
+            await Repo.RecordPowerSaverMinuteAsync(user.UserId, powerQuest.QuestId, Today, 1000 + i);
+
+        Assert.True(await Repo.TryClaimPowerSaverQuestAsync(user.UserId, powerQuest.QuestId, Today));
+        var userAfterPower = (await Repo.GetUserByUsernameAsync(user.Username))!;
+        Assert.Equal(35, userAfterPower.TotalEcoKoin);
+        Assert.Equal(35, await Repo.GetCoinsEarnedTodayAsync(user.UserId, Today));
+        Assert.NotNull(userAfterPower.Pet);
+        Assert.Equal(PetState.Segar, userAfterPower.Pet.CurrentState);
+        Assert.Equal(100, userAfterPower.Pet.HappinessLevel);
+    }
+
+    [SkippableFact]
+    public async Task GetDailyPowerSaverMinutes_ReturnsMinutesPerDateInRange()
+    {
+        var user = NewUser("u-daily-mins", "daily_user", coins: 0);
+        await Repo.SaveUserAsync(user);
+        var q1 = (await Repo.EnsureDailyQuestsAsync(user.UserId, Today.AddDays(-2))).OfType<PowerSaverQuest>().Single();
+        var q2 = (await Repo.EnsureDailyQuestsAsync(user.UserId, Today)).OfType<PowerSaverQuest>().Single();
+
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, q1.QuestId, Today.AddDays(-2), 10);
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, q1.QuestId, Today.AddDays(-2), 11);
+        await Repo.RecordPowerSaverMinuteAsync(user.UserId, q2.QuestId, Today, 20);
+
+        var daily = await Repo.GetDailyPowerSaverMinutesAsync(user.UserId, Today.AddDays(-3), Today);
+        Assert.Equal(2, daily[Today.AddDays(-2)]);
+        Assert.Equal(1, daily[Today]);
+        Assert.False(daily.ContainsKey(Today.AddDays(-1)));
+    }
 }
