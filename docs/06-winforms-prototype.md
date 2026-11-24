@@ -1,6 +1,6 @@
 # 6. Prototipe WinForms (arsip referensi)
 
-> **Kondisi target:** prototipe ini dipertahankan sebagai **arsip referensi tugas PBO** dan **bukan bagian rilis**. Fungsinya sudah diserap ke produk: hierarki quest abstrak → `DailyQuest` + turunan ([dokumen 3](03-domain-model.md)), `DatabaseHelper` (PostgreSQL) → `SqliteRepository` ([dokumen 4](04-database.md)), form statis → View WPF ([dokumen 5](05-wpf-app.md)). Isi di bawah mendokumentasikan prototipe apa adanya.
+> **Kondisi target:** prototipe ini dipertahankan sebagai **arsip referensi tugas PBO** dan **bukan bagian rilis**. Fungsinya sudah diserap ke produk: hierarki quest abstrak → `DailyQuest` + turunan ([dokumen 3](03-domain-model.md)), `DatabaseHelper` (PostgreSQL) → `IAppRepository` / `PostgresRepository` ([dokumen 4](04-database.md)), form statis → View WPF ([dokumen 5](05-wpf-app.md)). Isi di bawah mendokumentasikan prototipe apa adanya.
 
 Lokasi: `src/EcoKoin.WinForms.Prototype/` · Project: `ecokoin7.csproj` (assembly/namespace `ecokoin7`, `net10.0-windows`, `UseWindowsForms`, paket `Npgsql` 10.0.3) · Solusi: `src/WinFormsAppEcoKoin.slnx`.
 
@@ -105,7 +105,7 @@ Tidak diambil dari sumber nyata: cuaca (25°C Mendung), kelembapan (65%), status
 
 ## Perbedaan dengan rancangan produk
 
-- DB PostgreSQL vs rancangan SQLite.
-- `Quest` (prototipe, punya reward & state selesai) vs `DailyQuest` (`Models/`, punya target & progress).
+- Prototipe memakai Npgsql langsung di form (`DatabaseHelper`); produk memakai `PostgresRepository` di balik `IAppRepository` (async) dengan skema v2 dan connection string dari `ECOKOIN_DB_CONNECTION`.
+- `Quest` (prototipe, punya reward & state selesai) vs `DailyQuest` (`EcoKoin.Core/Models`, punya target & progress).
 - State pet berupa string; belum memakai enum `PetState`.
 - Tidak ada layer service untuk daya/cuaca; semua data tampilan statis.
