@@ -41,11 +41,11 @@ namespace EcoKoin.Models
             WattSaved = wattSaved;
         }
 
-        /// <summary>Delegates to <see cref="SqliteRepository.SavePowerSession"/>.</summary>
-        public void SaveToDatabase(SqliteRepository repo)
+        /// <summary>Delegates to <see cref="IAppRepository.SavePowerSessionAsync"/>.</summary>
+        public Task SaveToDatabaseAsync(IAppRepository repo, CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(repo);
-            repo.SavePowerSession(this);
+            return repo.SavePowerSessionAsync(this, ct);
         }
     }
 }
