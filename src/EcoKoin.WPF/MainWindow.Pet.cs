@@ -17,7 +17,7 @@ namespace EcoKoin.WPF
             PetState State, string ImageFile, int KoinToday, int TotalKoin, int SleepCount, int SleepMinutes, int PowerSaverMinutes);
 
         private void InitializeDashboardPet(DashboardViewModel dashboard, AuthUser user,
-            SqliteAccountService accounts, IClock clock)
+            AccountService accounts, IClock clock)
         {
             if (string.IsNullOrEmpty(user.UserId))
                 return;
@@ -56,14 +56,14 @@ namespace EcoKoin.WPF
                 DateTime now = clock.Now;
                 try
                 {
-                    var data = await Task.Run(() =>
+                    var data = await Task.Run(async () =>
                     {
                         var repository = accounts.GetRepository();
-                        EcoPet pet = repository.GetOrCreatePet(userId, today);
-                        int total = repository.GetTotalEcoKoin(userId);
-                        int koinToday = repository.GetKoinEarnedOn(userId, today);
+                        EcoPet pet = await repository.GetOrCreatePetAsync(userId, today);
+                        int total = await repository.GetTotalEcoKoinAsync(userId);
+                        int koinToday = await repository.GetKoinEarnedOnAsync(userId, today);
                         DateTime from = today.ToDateTime(TimeOnly.MinValue);
-                        var sessions = repository.GetPowerSessions(userId, from, from.AddDays(1));
+                        var sessions = await repository.GetPowerSessionsAsync(userId, from, from.AddDays(1));
 
                         int sleepCount = 0, sleepMinutes = 0, powerSaverMinutes = 0;
                         foreach (PowerSession session in sessions)
