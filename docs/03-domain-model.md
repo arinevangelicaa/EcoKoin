@@ -246,6 +246,12 @@ SQLite **bukan** bagian produk: `SqliteTestRepository` hanya ada di proyek tes (
 | `GetWeeklyReportDataAsync(userId, now)` | sesi 7 hari terakhir milik pengguna, terurut `start_time` |
 | `GetPowerSchemesAsync()` | semua skema daya, terurut `cpu_max_performance` |
 | `EnsureDailyQuestsAsync(userId, date)` | membuat 3 quest default bila belum ada pada tanggal itu, lalu mengembalikan quest tanggal tersebut |
+| `RecordPowerSaverMinuteAsync`, `GetPowerSaverMinutesAsync`, `GetDailyPowerSaverMinutesAsync` | mencatat dan membaca menit Power Saver (tabel `POWER_SAVER_PROGRESS`), total dan per hari |
+| `TryClaimQuestAsync`, `TryClaimPowerSaverQuestAsync`, `TryClaimWeatherQuestAsync` | klaim atomik: hanya satu pemanggil yang berhasil dan koin masuk dalam transaksi yang sama (`true` hanya untuk pemanggil itu) |
+| `AddQuestProgressAsync`, `TryApplyWeatherQuestAsync` | menambah progres quest Sleep/WeatherAdaptive (dibatasi target, hanya bila belum diklaim) |
+| `GetTotalEcoKoinAsync`, `GetCoinsEarnedTodayAsync`, `GetKoinEarnedOnAsync`, `GetKoinEarnedPerDayAsync` | saldo dan koin per hari untuk dashboard dan analisis (satu entri per hari, 0 bila kosong) |
+| `GetPowerSessionsAsync(userId, from, to)` | sesi pada rentang `[from, to)`, terurut `start_time`, termasuk sesi berjalan |
+| `GetOrCreatePetAsync(userId, today)` | memuat atau membuat EcoPet dan menyegarkan keadaannya dari koin hari ini |
 
 ### `DuplicateUsernameException`
 Pengecualian netral-penyedia untuk nama pengguna (email) yang sudah terdaftar. Layer UI menangkapnya (`AccountService.RegisterAsync` mengembalikan `false`) tanpa tergantung pada kode kesalahan PostgreSQL atau SQLite.
