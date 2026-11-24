@@ -1,53 +1,59 @@
-using System.IO;
 using EcoKoin.Models;
 using EcoKoin.Services;
-using Microsoft.Data.Sqlite;
 
 namespace EcoKoin.WPF.Models
 {
-    internal sealed class SqliteAccountService(string databasePath)
+    internal sealed class AccountService(IAppRepository repository)
     {
-        private const int UniqueConstraint = 2067;
-        private readonly object _initializationLock = new();
-        private SqliteRepository? _repository;
+        private readonly SemaphoreSlim _initializationLock = new(1, 1);
+        private bool _initialized;
 
-        private SqliteRepository GetRepository()
+        /// <summary>
+        /// Membuat skema database (idempoten) satu kali. Dipanggil lazily oleh Register/Login
+        /// dan secara eksplisit saat startup agar kesalahan koneksi terdeteksi lebih awal.
+        /// </summary>
+        public async Task InitializeAsync(CancellationToken ct = default)
         {
-            lock (_initializationLock)
-            {
-                if (_repository is not null)
-                    return _repository;
+            if (_initialized)
+                return;
 
-                var connectionString = new SqliteConnectionStringBuilder { DataSource = databasePath };
-                var repository = new SqliteRepository(connectionString.ToString());
-                repository.InitializeDatabase();
-                _repository = repository;
-                return repository;
+            await _initializationLock.WaitAsync(ct);
+            try
+            {
+                if (_initialized)
+                    return;
+
+                await repository.InitializeDatabaseAsync(ct);
+                _initialized = true;
+            }
+            finally
+            {
+                _initializationLock.Release();
             }
         }
 
-        public static SqliteAccountService CreateDefault() => new(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "EcoKoin", "ecokoin.db"));
-
-        public Task<bool> RegisterAsync(string name, string email, string password) => Task.Run(() =>
+        public async Task<bool> RegisterAsync(string name, string email, string password)
         {
+            await InitializeAsync();
+
             var user = User.Register(NormalizeEmail(email), password, displayName: name);
             try
             {
-                GetRepository().SaveUser(user);
+                await repository.SaveUserAsync(user);
                 return true;
             }
-            catch (SqliteException ex) when (ex.SqliteExtendedErrorCode == UniqueConstraint)
+            catch (DuplicateUsernameException)
             {
                 return false;
             }
-        });
+        }
 
-        public Task<AuthUser?> LoginAsync(string email, string password, bool rememberMe) => Task.Run<AuthUser?>(() =>
+        public async Task<AuthUser?> LoginAsync(string email, string password, bool rememberMe)
         {
+            await InitializeAsync();
+
             string username = NormalizeEmail(email);
-            var user = GetRepository().GetUserByUsername(username);
+            var user = await repository.GetUserByUsernameAsync(username);
             if (user is null || !user.Login(username, password))
                 return null;
 
@@ -57,7 +63,7 @@ namespace EcoKoin.WPF.Models
                 Username = user.DisplayName,
                 TotalEcoKoin = user.TotalEcoKoin
             };
-        });
+        }
 
         private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
     }
