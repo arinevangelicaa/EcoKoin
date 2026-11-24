@@ -313,6 +313,396 @@ namespace EcoKoin.Services
             return quests;
         }
 
+        // ---- dashboard, quest and analytics queries -----------------------------------------
+        // Semantics are those of the original SQLite implementation (see IAppRepository docs).
+
+        public async Task RecordPowerSaverMinuteAsync(string userId, string questId, DateOnly date, long sampleMinute, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ArgumentNullException.ThrowIfNull(questId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var tx = await connection.BeginTransactionAsync(ct);
+
+            int rows;
+            await using (var cmd = new NpgsqlCommand(@"
+                INSERT INTO POWER_SAVER_PROGRESS (quest_id, last_sample_minute, tracked_minutes)
+                SELECT quest_id, @minute, current_progress + 1 FROM DAILY_QUESTS
+                WHERE quest_id = @quest AND user_id = @user AND quest_date = @date
+                  AND quest_type = 'PowerSaver'
+                ON CONFLICT (quest_id) DO UPDATE SET last_sample_minute = EXCLUDED.last_sample_minute,
+                    tracked_minutes = COALESCE(POWER_SAVER_PROGRESS.tracked_minutes + 1, EXCLUDED.tracked_minutes)
+                WHERE EXCLUDED.last_sample_minute > POWER_SAVER_PROGRESS.last_sample_minute;", connection, tx))
+            {
+                cmd.Parameters.AddWithValue("quest", questId);
+                cmd.Parameters.AddWithValue("user", userId);
+                AddDate(cmd, "date", date);
+                cmd.Parameters.Add(new NpgsqlParameter("minute", NpgsqlDbType.Bigint) { Value = sampleMinute });
+                rows = await cmd.ExecuteNonQueryAsync(ct);
+            }
+
+            if (rows == 1)
+            {
+                await using var cmd = new NpgsqlCommand(@"
+                    UPDATE DAILY_QUESTS SET current_progress = current_progress + 1
+                    WHERE quest_id = @quest AND is_claimed = FALSE AND current_progress < target_value;", connection, tx);
+                cmd.Parameters.AddWithValue("quest", questId);
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+
+            await tx.CommitAsync(ct);
+        }
+
+        public async Task<long> GetPowerSaverMinutesAsync(string userId, DateOnly startDate, DateOnly endDate, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var cmd = new NpgsqlCommand(@"
+                SELECT COALESCE(SUM(COALESCE(p.tracked_minutes, q.current_progress)), 0)::BIGINT
+                FROM DAILY_QUESTS q
+                LEFT JOIN POWER_SAVER_PROGRESS p ON p.quest_id = q.quest_id
+                WHERE q.user_id = @user AND q.quest_type = 'PowerSaver'
+                  AND q.quest_date BETWEEN @start AND @end;", connection);
+            cmd.Parameters.AddWithValue("user", userId);
+            AddDate(cmd, "start", startDate);
+            AddDate(cmd, "end", endDate);
+            return Convert.ToInt64((await cmd.ExecuteScalarAsync(ct))!);
+        }
+
+        public async Task<bool> TryClaimPowerSaverQuestAsync(string userId, string questId, DateOnly date, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ArgumentNullException.ThrowIfNull(questId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var tx = await connection.BeginTransactionAsync(ct);
+
+            int? reward;
+            await using (var cmd = new NpgsqlCommand(@"
+                UPDATE DAILY_QUESTS SET is_claimed = TRUE
+                WHERE quest_id = @quest AND user_id = @user AND quest_date = @date
+                  AND quest_type = 'PowerSaver' AND is_claimed = FALSE AND current_progress >= target_value
+                RETURNING reward_coin;", connection, tx))
+            {
+                cmd.Parameters.AddWithValue("quest", questId);
+                cmd.Parameters.AddWithValue("user", userId);
+                AddDate(cmd, "date", date);
+                reward = await cmd.ExecuteScalarAsync(ct) as int?;
+            }
+
+            if (reward is null)
+                return false;
+
+            await AddCoinsAsync(connection, tx, userId, reward.Value, ct);
+            await UpdatePetStateAsync(connection, tx, userId, date, ct);
+
+            await tx.CommitAsync(ct);
+            return true;
+        }
+
+        public async Task<bool> TryApplyWeatherQuestAsync(string userId, DateOnly date, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var cmd = new NpgsqlCommand(@"
+                UPDATE DAILY_QUESTS
+                SET current_progress = target_value
+                WHERE user_id = @user AND quest_date = @date AND quest_type = 'WeatherAdaptive' AND is_claimed = FALSE;", connection);
+            cmd.Parameters.AddWithValue("user", userId);
+            AddDate(cmd, "date", date);
+            return await cmd.ExecuteNonQueryAsync(ct) > 0;
+        }
+
+        public async Task<bool> TryClaimWeatherQuestAsync(string userId, DateOnly date, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var tx = await connection.BeginTransactionAsync(ct);
+
+            int? reward;
+            await using (var cmd = new NpgsqlCommand(@"
+                UPDATE DAILY_QUESTS SET is_claimed = TRUE
+                WHERE user_id = @user AND quest_date = @date
+                  AND quest_type = 'WeatherAdaptive' AND is_claimed = FALSE AND current_progress >= target_value
+                RETURNING reward_coin;", connection, tx))
+            {
+                cmd.Parameters.AddWithValue("user", userId);
+                AddDate(cmd, "date", date);
+                reward = await cmd.ExecuteScalarAsync(ct) as int?;
+            }
+
+            if (reward is null)
+                return false;
+
+            await AddCoinsAsync(connection, tx, userId, reward.Value, ct);
+            await UpdatePetStateAsync(connection, tx, userId, date, ct);
+
+            await tx.CommitAsync(ct);
+            return true;
+        }
+
+        public async Task<int> GetCoinsEarnedTodayAsync(string userId, DateOnly date, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            return await ReadKoinEarnedOnAsync(connection, null, userId, date, ct);
+        }
+
+        public async Task<IReadOnlyDictionary<DateOnly, long>> GetDailyPowerSaverMinutesAsync(string userId, DateOnly startDate, DateOnly endDate, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            var dict = new Dictionary<DateOnly, long>();
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var cmd = new NpgsqlCommand(@"
+                SELECT q.quest_date, COALESCE(SUM(COALESCE(p.tracked_minutes, q.current_progress)), 0)::BIGINT
+                FROM DAILY_QUESTS q
+                LEFT JOIN POWER_SAVER_PROGRESS p ON p.quest_id = q.quest_id
+                WHERE q.user_id = @user AND q.quest_type = 'PowerSaver'
+                  AND q.quest_date BETWEEN @start AND @end
+                GROUP BY q.quest_date;", connection);
+            cmd.Parameters.AddWithValue("user", userId);
+            AddDate(cmd, "start", startDate);
+            AddDate(cmd, "end", endDate);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+                dict[reader.GetFieldValue<DateOnly>(0)] = reader.GetInt64(1);
+
+            return dict;
+        }
+
+        public async Task<IReadOnlyList<PowerSession>> GetPowerSessionsAsync(string userId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            var result = new List<PowerSession>();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var cmd = new NpgsqlCommand(@"
+                SELECT session_id, user_id, scheme_id, start_time, end_time, watt_saved
+                FROM POWER_SESSIONS
+                WHERE user_id = @uid AND start_time >= @from AND start_time < @to
+                ORDER BY start_time ASC, session_id ASC;", connection);
+            cmd.Parameters.AddWithValue("uid", userId);
+            AddTimestamp(cmd, "from", fromInclusive);
+            AddTimestamp(cmd, "to", toExclusive);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                result.Add(new PowerSession(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetDateTime(3),
+                    reader.IsDBNull(4) ? null : reader.GetDateTime(4),
+                    reader.GetDouble(5)));
+            }
+
+            return result;
+        }
+
+        public async Task<int> GetTotalEcoKoinAsync(string userId, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var cmd = new NpgsqlCommand("SELECT total_ecokoin FROM USERS WHERE user_id = @uid;", connection);
+            cmd.Parameters.AddWithValue("uid", userId);
+            return await cmd.ExecuteScalarAsync(ct) is int total ? total : 0;
+        }
+
+        public async Task<int> GetKoinEarnedOnAsync(string userId, DateOnly date, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            return await ReadKoinEarnedOnAsync(connection, null, userId, date, ct);
+        }
+
+        public async Task<IReadOnlyList<(DateOnly Date, int Koin)>> GetKoinEarnedPerDayAsync(string userId, DateOnly fromInclusive, DateOnly toInclusive, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            var result = new List<(DateOnly Date, int Koin)>();
+            if (toInclusive < fromInclusive)
+                return result;
+
+            var byDay = new Dictionary<DateOnly, int>();
+            await using (var connection = await _dataSource.OpenConnectionAsync(ct))
+            await using (var cmd = new NpgsqlCommand(@"
+                SELECT quest_date, SUM(reward_coin)::BIGINT FROM DAILY_QUESTS
+                WHERE user_id = @uid AND is_claimed = TRUE
+                  AND quest_date >= @from AND quest_date <= @to
+                GROUP BY quest_date;", connection))
+            {
+                cmd.Parameters.AddWithValue("uid", userId);
+                AddDate(cmd, "from", fromInclusive);
+                AddDate(cmd, "to", toInclusive);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                    byDay[reader.GetFieldValue<DateOnly>(0)] = (int)reader.GetInt64(1);
+            }
+
+            for (var day = fromInclusive; day <= toInclusive; day = day.AddDays(1))
+                result.Add((day, byDay.GetValueOrDefault(day)));
+            return result;
+        }
+
+        public async Task<bool> TryClaimQuestAsync(string userId, string questId, DateOnly date, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ArgumentNullException.ThrowIfNull(questId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var tx = await connection.BeginTransactionAsync(ct);
+
+            int? reward;
+            await using (var cmd = new NpgsqlCommand(@"
+                UPDATE DAILY_QUESTS SET is_claimed = TRUE
+                WHERE quest_id = @quest AND user_id = @user AND quest_date = @date
+                  AND is_claimed = FALSE AND current_progress >= target_value
+                RETURNING reward_coin;", connection, tx))
+            {
+                cmd.Parameters.AddWithValue("quest", questId);
+                cmd.Parameters.AddWithValue("user", userId);
+                AddDate(cmd, "date", date);
+                reward = await cmd.ExecuteScalarAsync(ct) as int?;
+            }
+
+            if (reward is null)
+                return false;
+
+            await AddCoinsAsync(connection, tx, userId, reward.Value, ct);
+            await tx.CommitAsync(ct);
+            return true;
+        }
+
+        public async Task<int> AddQuestProgressAsync(string userId, QuestType type, DateOnly date, int amount, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            if (type == QuestType.PowerSaver)
+                throw new ArgumentException("PowerSaver progress is recorded with RecordPowerSaverMinuteAsync.", nameof(type));
+            if (type != QuestType.Sleep && type != QuestType.WeatherAdaptive)
+                throw new ArgumentException($"Unsupported quest type '{type}'.", nameof(type));
+            if (amount <= 0)
+                throw new ArgumentOutOfRangeException(nameof(amount), amount, "Amount must be positive.");
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            // bigint arithmetic so a huge amount clamps to target_value instead of overflowing INTEGER.
+            await using var cmd = new NpgsqlCommand(@"
+                UPDATE DAILY_QUESTS
+                SET current_progress = LEAST(current_progress::BIGINT + @amount, target_value::BIGINT)
+                WHERE user_id = @user AND quest_type = @type AND quest_date = @date AND is_claimed = FALSE
+                RETURNING current_progress;", connection);
+            cmd.Parameters.Add(new NpgsqlParameter("amount", NpgsqlDbType.Bigint) { Value = (long)amount });
+            cmd.Parameters.AddWithValue("user", userId);
+            cmd.Parameters.AddWithValue("type", type.ToString());
+            AddDate(cmd, "date", date);
+            return await cmd.ExecuteScalarAsync(ct) is int progress ? progress : -1;
+        }
+
+        public async Task<EcoPet> GetOrCreatePetAsync(string userId, DateOnly today, CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
+            ct.ThrowIfCancellationRequested();
+
+            await using var connection = await _dataSource.OpenConnectionAsync(ct);
+            await using var tx = await connection.BeginTransactionAsync(ct);
+
+            await using (var cmd = new NpgsqlCommand(@"
+                INSERT INTO ECO_PETS (pet_id, user_id, happiness_level, current_state)
+                VALUES (@pid, @uid, 0, 'Lemas')
+                ON CONFLICT (user_id) DO NOTHING;", connection, tx))
+            {
+                cmd.Parameters.AddWithValue("pid", Guid.NewGuid().ToString());
+                cmd.Parameters.AddWithValue("uid", userId);
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+
+            EcoPet pet;
+            await using (var cmd = new NpgsqlCommand("SELECT pet_id, happiness_level, current_state FROM ECO_PETS WHERE user_id = @uid;", connection, tx))
+            {
+                cmd.Parameters.AddWithValue("uid", userId);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                await reader.ReadAsync(ct);
+                pet = new EcoPet(reader.GetString(0), userId, reader.GetInt32(1), Enum.Parse<PetState>(reader.GetString(2)));
+            }
+
+            pet.UpdateState(await ReadKoinEarnedOnAsync(connection, tx, userId, today, ct));
+
+            await using (var cmd = new NpgsqlCommand("UPDATE ECO_PETS SET happiness_level = @happy, current_state = @state WHERE pet_id = @pid;", connection, tx))
+            {
+                cmd.Parameters.AddWithValue("happy", pet.HappinessLevel);
+                cmd.Parameters.AddWithValue("state", pet.CurrentState.ToString());
+                cmd.Parameters.AddWithValue("pid", pet.PetId);
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+
+            await tx.CommitAsync(ct);
+            return pet;
+        }
+
+        private static async Task AddCoinsAsync(NpgsqlConnection connection, NpgsqlTransaction tx, string userId, int reward, CancellationToken ct)
+        {
+            await using var cmd = new NpgsqlCommand("UPDATE USERS SET total_ecokoin = total_ecokoin + @reward WHERE user_id = @user;", connection, tx);
+            cmd.Parameters.AddWithValue("reward", reward);
+            cmd.Parameters.AddWithValue("user", userId);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        /// <summary>Sum of reward_coin of the user's claimed quests dated <paramref name="date"/>; 0 if none.</summary>
+        private static async Task<int> ReadKoinEarnedOnAsync(NpgsqlConnection connection, NpgsqlTransaction? tx, string userId, DateOnly date, CancellationToken ct)
+        {
+            await using var cmd = new NpgsqlCommand(@"
+                SELECT COALESCE(SUM(reward_coin), 0)::BIGINT
+                FROM DAILY_QUESTS
+                WHERE user_id = @user AND quest_date = @date AND is_claimed = TRUE;", connection, tx);
+            cmd.Parameters.AddWithValue("user", userId);
+            AddDate(cmd, "date", date);
+            return Convert.ToInt32((await cmd.ExecuteScalarAsync(ct))!);
+        }
+
+        /// <summary>Recomputes the user's pet from the koin claimed on <paramref name="date"/> (same rule as EcoPet.UpdateState) and upserts it.</summary>
+        private static async Task UpdatePetStateAsync(NpgsqlConnection connection, NpgsqlTransaction tx, string userId, DateOnly date, CancellationToken ct)
+        {
+            long coinsToday = await ReadKoinEarnedOnAsync(connection, tx, userId, date, ct);
+
+            int happiness = (int)Math.Clamp(coinsToday * 3, 0, 100);
+            string state = coinsToday >= 30 ? "Segar" : coinsToday >= 10 ? "Normal" : "Lemas";
+
+            await using var cmd = new NpgsqlCommand(@"
+                INSERT INTO ECO_PETS (pet_id, user_id, happiness_level, current_state)
+                VALUES (@pid, @user, @happy, @state)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    happiness_level = EXCLUDED.happiness_level,
+                    current_state = EXCLUDED.current_state;", connection, tx);
+            cmd.Parameters.AddWithValue("pid", "pet_" + userId);
+            cmd.Parameters.AddWithValue("user", userId);
+            cmd.Parameters.AddWithValue("happy", happiness);
+            cmd.Parameters.AddWithValue("state", state);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        private static void AddDate(NpgsqlCommand cmd, string name, DateOnly value) =>
+            cmd.Parameters.Add(new NpgsqlParameter(name, NpgsqlDbType.Date) { Value = value });
+
         // ---- helpers ------------------------------------------------------------------------
 
         private static async Task UpsertPetAsync(NpgsqlConnection connection, NpgsqlTransaction tx, User user, CancellationToken ct)
