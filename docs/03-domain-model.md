@@ -64,7 +64,7 @@ classDiagram
         +DateTime StartTime
         +DateTime? EndTime
         +double WattSaved
-        +SaveToDatabase(SqliteRepository)
+        +SaveToDatabaseAsync(IAppRepository) Task
     }
     class WeatherData {
         +double Temperature
@@ -96,22 +96,30 @@ classDiagram
         +FetchCurrentWeather() WeatherData
         +GetBrightnessRecommendation(WeatherData) string
     }
-    class SqliteRepository {
-        +InitializeDatabase()
-        +SaveUser(User)
-        +GetUserByUsername(string) User
-        +SavePowerSession(PowerSession)
-        +SaveQuestProgress(DailyQuest)
-        +GetWeeklyReportData() List~PowerSession~
-        +UpdateUserProfile(User)
+    class IAppRepository {
+        <<interface>>
+        +InitializeDatabaseAsync() Task
+        +SaveUserAsync(User) Task
+        +GetUserByUsernameAsync(string) Task~User?~
+        +UpdateUserProfileAsync(User) Task
+        +SavePowerSessionAsync(PowerSession) Task
+        +SaveQuestProgressAsync(DailyQuest) Task
+        +GetWeeklyReportDataAsync(string userId, DateTime now) Task~IReadOnlyList~PowerSession~~
+        +GetPowerSchemesAsync() Task~IReadOnlyList~PowerScheme~~
+        +EnsureDailyQuestsAsync(string userId, DateOnly date) Task~IReadOnlyList~DailyQuest~~
     }
+    class PostgresRepository
+    class DuplicateUsernameException
     class MainViewModel {
         +User CurrentUser
         +PowerMonitorService PowerService
         +WeatherService WeatherService
-        +Initialize()
-        +RefreshDashboard()
+        +InitializeAsync(string username) Task
+        +RefreshDashboardAsync() Task
+        +OnTickAsync(TimeSpan) Task
+        +RecordEventAsync(QuestEvent) Task
     }
+    class AsyncRelayCommand
 
     User "1" --> "*" DailyQuest
     User "1" --> "1" EcoPet
@@ -121,12 +129,15 @@ classDiagram
     DailyQuest <|-- WeatherAdaptiveQuest
     PowerMonitorService --> PowerScheme
     WeatherService ..> WeatherData
-    SqliteRepository ..> User
-    SqliteRepository ..> PowerSession
+    IAppRepository <|.. PostgresRepository
+    IAppRepository ..> User
+    IAppRepository ..> PowerSession
+    IAppRepository ..> DuplicateUsernameException
+    MainViewModel --> AsyncRelayCommand
     MainViewModel --> User
     MainViewModel --> PowerMonitorService
     MainViewModel --> WeatherService
-    MainViewModel --> SqliteRepository
+    MainViewModel --> IAppRepository
 ```
 
 Class diagram versi asli (rancangan awal): [README](../README.md).
@@ -183,7 +194,7 @@ Jenis quest dipersist di kolom `quest_type` ([dokumen 4](04-database.md)).
 Profil daya: `SchemeName`, `CpuMaxPerformance` (persen). `Activate()` menerapkan lewat `powercfg` (set `PROCTHROTTLEMAX` ke `CpuMaxPerformance` lalu `/setactive`); melempar `InvalidOperationException` bila perintah gagal. Data awal: *Power Saver* (50), *Balanced* (80).
 
 ### `PowerSession`
-Satu sesi pemakaian skema. `EndTime` nullable (`null` = sesi berjalan). `WattSaved` terisi saat sesi ditutup. `SaveToDatabase(repo)` mendelegasikan ke `SqliteRepository.SavePowerSession`.
+Satu sesi pemakaian skema. `EndTime` nullable (`null` = sesi berjalan). `WattSaved` terisi saat sesi ditutup. `SaveToDatabaseAsync(repo)` mendelegasikan ke `IAppRepository.SavePowerSessionAsync`.
 
 ### `WeatherData`
 DTO sementara (tidak disimpan): `Temperature` (°C), `Humidity` (%), `Condition`, `Cloudiness` (%), `Timestamp`.
@@ -219,24 +230,39 @@ Rupiah     = kWhHemat × 1444.70     (tarif listrik, Rp/kWh)
 | `FetchCurrentWeather()` | `GET https://api.openweathermap.org/data/2.5/weather?q={CityName}&units=metric&appid={ApiKey}`; memetakan `main.temp`, `main.humidity`, `weather[0].main`, `clouds.all`; cache `CacheMinutes`; saat gagal mengembalikan cache terakhir bila ada, selain itu melempar `WeatherUnavailableException` |
 | `GetBrightnessRecommendation(WeatherData)` | `Cloudiness >= 60` → "Turunkan kecerahan ke 40%"; `30–59` → "Turunkan kecerahan ke 60%"; `< 30` → "Kecerahan sudah optimal" |
 
-### `SqliteRepository`
-Konstruktor menerima connection string (default dari `Database:Path`). Tiap koneksi menjalankan `PRAGMA foreign_keys = ON`. Semua query diparameterisasi.
+### `IAppRepository` dan `PostgresRepository`
+`IAppRepository` adalah antarmuka akses data **async** (semua method mengembalikan `Task` dan menerima `CancellationToken`). Implementasi produksi: `PostgresRepository` (Npgsql, server PostgreSQL remote). `DatabaseConfig.CreateFromEnvironment()` membuatnya dari environment variable `ECOKOIN_DB_CONNECTION`; bila variabel kosong, melempar `InvalidOperationException` dengan petunjuk (tanpa menampilkan connection string). Semua query diparameterisasi dan penulisan multi-tabel memakai transaksi.
+
+SQLite **bukan** bagian produk: `SqliteTestRepository` hanya ada di proyek tes (`tests/EcoKoin.Core.Tests/Support`) sebagai implementasi tes yang cepat dan offline. Kedua implementasi harus lulus suite kontrak yang sama (`RepositoryContractTests`).
 
 | Method | Perilaku |
 |---|---|
-| `InitializeDatabase()` | membuat folder/file DB bila belum ada, menjalankan `schema.sql` (idempoten) |
-| `SaveUser` / `UpdateUserProfile` | upsert `USERS` (+ `ECO_PETS`) dalam satu transaksi |
-| `GetUserByUsername(string)` | memuat `User` lengkap dengan `Pet` dan `Quests`; `null` bila tidak ada |
-| `SavePowerSession(PowerSession)` | insert/update sesi |
-| `SaveQuestProgress(DailyQuest)` | update `current_progress`, `is_claimed` |
-| `GetWeeklyReportData()` | sesi 7 hari terakhir milik pengguna aktif, terurut `start_time` |
+| `InitializeDatabaseAsync()` | menjalankan skema PostgreSQL + data awal (idempoten) |
+| `SaveUserAsync(User)` | upsert `USERS` (+ `ECO_PETS`, quest) dalam satu transaksi; nama pengguna sudah dipakai pengguna lain → `DuplicateUsernameException`; `DisplayName` tersimpan tidak ditimpa `null` |
+| `GetUserByUsernameAsync(string)` | memuat `User` lengkap dengan `Pet` dan quest tanggal terbaru; `null` bila tidak ada |
+| `UpdateUserProfileAsync(User)` | memperbarui koin, pet, dan quest dalam satu transaksi; user tidak ada → `InvalidOperationException` |
+| `SavePowerSessionAsync(PowerSession)` | insert/update sesi (`EndTime == null` ↔ `NULL`) |
+| `SaveQuestProgressAsync(DailyQuest)` | upsert baris quest (`current_progress`, `is_claimed`) |
+| `GetWeeklyReportDataAsync(userId, now)` | sesi 7 hari terakhir milik pengguna, terurut `start_time` |
+| `GetPowerSchemesAsync()` | semua skema daya, terurut `cpu_max_performance` |
+| `EnsureDailyQuestsAsync(userId, date)` | membuat 3 quest default bila belum ada pada tanggal itu, lalu mengembalikan quest tanggal tersebut |
+
+### `DuplicateUsernameException`
+Pengecualian netral-penyedia untuk nama pengguna (email) yang sudah terdaftar. Layer UI menangkapnya (`AccountService.RegisterAsync` mengembalikan `false`) tanpa tergantung pada kode kesalahan PostgreSQL atau SQLite.
 
 ## ViewModel
 
 ### `MainViewModel` (`INotifyPropertyChanged`)
+Konstruktor: `MainViewModel(IAppRepository repo, PowerMonitorService power, WeatherService weather, IClock clock)`. Semua operasi yang menyentuh database bersifat async agar UI tidak membeku saat menunggu jaringan.
+
 | Member | Perilaku |
 |---|---|
-| `CurrentUser`, `PowerService`, `WeatherService` | dependensi/state, dinotifikasi ke View |
-| `Initialize()` | memuat user, quest, pet, skema; menyalakan timer |
-| `RefreshDashboard()` | memperbarui cuaca, status daya, kartu statistik, laporan mingguan, daftar quest |
-| Command | `ApplyRecommendationCommand`, `ClaimQuestCommand(quest)`, `RefreshCommand`, `NavigateCommand(page)` |
+| `CurrentUser`, `PowerService`, `WeatherService`, `Quests`, `WeeklyReport`, `CurrentWeather`, `WeatherStale`, dll. | state, dinotifikasi ke View lewat `INotifyPropertyChanged` |
+| `InitializeAsync(username)` | menyiapkan skema (`InitializeDatabaseAsync`), memuat user, quest hari ini, pet, skema daya, lalu `RefreshDashboardAsync()` |
+| `RefreshDashboardAsync()` | memperbarui cuaca, status daya, kartu statistik, laporan mingguan, daftar quest |
+| `OnTickAsync(TimeSpan)` | dipanggil timer di UI: menambah menit PowerSaver dan menyegarkan cuaca |
+| `RecordEventAsync(QuestEvent)` | meneruskan event (mis. `SleepEntered`) ke quest dan menyimpan progres |
+| `ApplyRecommendationCommand`, `ClaimQuestCommand(quest)`, `RefreshCommand` | `AsyncRelayCommand`; kegagalan memunculkan `LastError` dan event `CommandFailed` (tidak ditelan diam-diam) |
+
+### `AsyncRelayCommand`
+`ICommand` untuk aksi async: tidak dapat dijalankan ulang selama masih berjalan (`IsRunning`), `ExecuteAsync` dapat di-`await`, dan galat diteruskan ke callback `onError`.
