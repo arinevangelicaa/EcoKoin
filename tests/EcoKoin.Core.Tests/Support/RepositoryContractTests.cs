@@ -1,111 +1,97 @@
 using EcoKoin.Models;
 using EcoKoin.Services;
-using Microsoft.Data.Sqlite;
 
-namespace EcoKoin.Core.Tests.Services;
+namespace EcoKoin.Core.Tests.Support;
 
-public class SqliteRepositoryTests : IDisposable
+/// <summary>
+/// Provider-neutral behaviour every <see cref="IAppRepository"/> must satisfy. Subclasses supply a fresh,
+/// empty, already-initialized repository per test (<see cref="CreateAsync"/>) and clean it up (<see cref="CleanupAsync"/>).
+/// </summary>
+public abstract class RepositoryContractTests : IAsyncLifetime
 {
-    private static readonly DateOnly Today = new(2026, 11, 20);
-    private static readonly DateTime Now = new(2026, 11, 20, 12, 0, 0);
+    protected static readonly DateOnly Today = new(2026, 11, 20);
+    protected static readonly DateTime Now = new(2026, 11, 20, 12, 0, 0);
 
-    private readonly TempDb _db = new();
-    private SqliteRepository Repo => _db.Repository;
+    protected IAppRepository Repo { get; private set; } = null!;
 
-    public void Dispose() => _db.Dispose();
+    /// <summary>Returns a fresh repository whose database is empty except for the seed data, with InitializeDatabaseAsync already called.</summary>
+    protected abstract Task<IAppRepository> CreateAsync();
 
-    private static User NewUser(string id = "u1", string name = "hermione", int coins = 0)
-        => new(id, name, "1.salt.hash", coins, new DateTime(2026, 1, 2, 3, 4, 5));
+    /// <summary>Drops/deletes whatever <see cref="CreateAsync"/> created.</summary>
+    protected virtual Task CleanupAsync() => Task.CompletedTask;
 
-    private static SleepQuest NewSleepQuest(string id, string userId, DateOnly date, int progress = 0, bool claimed = false)
+    /// <summary>When non-null the whole suite is reported as skipped with this reason (e.g. no database configured).</summary>
+    protected virtual string? SkipReason => null;
+
+    public async Task InitializeAsync()
+    {
+        Skip.If(SkipReason is not null, SkipReason);
+        Repo = await CreateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (Repo is not null)
+            await CleanupAsync();
+    }
+
+    protected static User NewUser(string id = "u1", string name = "hermione", int coins = 0, string? displayName = null)
+        => new(id, name, "1.salt.hash", coins, new DateTime(2026, 1, 2, 3, 4, 5), displayName);
+
+    protected static SleepQuest NewSleepQuest(string id, string userId, DateOnly date, int progress = 0, bool claimed = false)
         => new(id, userId, "Sleep when away", 1, 30, date, progress, claimed);
 
     // ---- schema / init -------------------------------------------------------------------
 
-    [Fact]
-    public void InitializeDatabase_CreatesMissingDirectoryAndFile()
+    [SkippableFact]
+    public async Task InitializeDatabase_IsIdempotent()
     {
-        Assert.True(File.Exists(_db.DbPath));
+        await Repo.InitializeDatabaseAsync();
+        await Repo.InitializeDatabaseAsync();
+
+        Assert.Equal(2, (await Repo.GetPowerSchemesAsync()).Count);
     }
 
-    [Fact]
-    public void InitializeDatabase_IsIdempotent()
+    [SkippableFact]
+    public async Task GetPowerSchemes_ReturnsSeededSchemesOnceOrderedByCpu()
     {
-        Repo.InitializeDatabase();
-        Repo.InitializeDatabase();
-
-        Assert.Equal(5, _db.Scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN " +
-            "('USERS','DAILY_QUESTS','ECO_PETS','POWER_SCHEMES','POWER_SESSIONS')"));
-        Assert.Equal(2, _db.Scalar("SELECT COUNT(*) FROM POWER_SCHEMES"));
-    }
-
-    [Fact]
-    public void GetPowerSchemes_ReturnsSeededSchemesOnceOrderedByCpu()
-    {
-        Repo.InitializeDatabase();
-
-        var schemes = Repo.GetPowerSchemes();
+        var schemes = await Repo.GetPowerSchemesAsync();
 
         Assert.Equal(2, schemes.Count);
+        Assert.Equal("scheme-power-saver", schemes[0].SchemeId);
         Assert.Equal("Power Saver", schemes[0].SchemeName);
         Assert.Equal(50, schemes[0].CpuMaxPerformance);
+        Assert.Equal("scheme-balanced", schemes[1].SchemeId);
         Assert.Equal("Balanced", schemes[1].SchemeName);
         Assert.Equal(80, schemes[1].CpuMaxPerformance);
     }
 
-    [Fact]
-    public void InitializeDatabase_AddsDisplayNameToExistingDatabaseWithoutLosingBalance()
-    {
-        var user = User.Register("legacy@example.test", "test-password");
-        user.AddEcoKoin(75);
-        Repo.SaveUser(user);
-
-        using (var connection = _db.OpenRaw())
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "ALTER TABLE USERS DROP COLUMN display_name;";
-            command.ExecuteNonQuery();
-        }
-
-        Repo.InitializeDatabase();
-        Repo.InitializeDatabase();
-
-        var existing = Repo.GetUserByUsername(user.Username);
-        Assert.NotNull(existing);
-        Assert.True(existing.Login(user.Username, "test-password"));
-        Assert.Equal(75, existing.TotalEcoKoin);
-        Assert.Null(existing.DisplayName);
-
-        var registered = User.Register("new@example.test", "test-password", displayName: "Nama Tampilan");
-        Repo.SaveUser(registered);
-        Assert.Equal("Nama Tampilan", Repo.GetUserByUsername(registered.Username)!.DisplayName);
-    }
-
     // ---- users ---------------------------------------------------------------------------
 
-    [Fact]
-    public void GetUserByUsername_UnknownUser_ReturnsNull()
+    [SkippableFact]
+    public async Task GetUserByUsername_UnknownUser_ReturnsNull()
     {
-        Assert.Null(Repo.GetUserByUsername("nobody"));
+        Assert.Null(await Repo.GetUserByUsernameAsync("nobody"));
     }
 
-    [Fact]
-    public void SaveUser_ThenGet_RoundTripsUserPetAndQuests()
+    [SkippableFact]
+    public async Task SaveUser_ThenGet_RoundTripsUserPetAndQuests()
     {
-        var user = NewUser(coins: 120);
+        var user = NewUser(coins: 120, displayName: "Hermione G.");
         user.Pet = new EcoPet("p1", user.UserId, 70, PetState.Segar);
         user.Quests.Add(NewSleepQuest("q1", user.UserId, Today, progress: 1, claimed: true));
         user.Quests.Add(new PowerSaverQuest("q2", user.UserId, "Power saver 4h", 240, 20, Today, 100));
         user.Quests.Add(new WeatherAdaptiveQuest("q3", user.UserId, "Apply weather tip", 1, 15, Today));
 
-        Repo.SaveUser(user);
-        var loaded = Repo.GetUserByUsername("hermione");
+        await Repo.SaveUserAsync(user);
+        var loaded = await Repo.GetUserByUsernameAsync("hermione");
 
         Assert.NotNull(loaded);
         Assert.Equal("u1", loaded.UserId);
         Assert.Equal("1.salt.hash", loaded.PasswordHash);
         Assert.Equal(120, loaded.TotalEcoKoin);
         Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), loaded.JoinDate);
+        Assert.Equal("Hermione G.", loaded.DisplayName);
 
         Assert.NotNull(loaded.Pet);
         Assert.Equal("p1", loaded.Pet.PetId);
@@ -124,147 +110,162 @@ public class SqliteRepositoryTests : IDisposable
         Assert.IsType<WeatherAdaptiveQuest>(loaded.Quests[2]);
     }
 
-    [Fact]
-    public void SaveUser_WithoutPet_LoadsNullPet()
+    [SkippableFact]
+    public async Task SaveUser_WithoutPet_LoadsNullPet()
     {
-        Repo.SaveUser(NewUser());
+        await Repo.SaveUserAsync(NewUser());
 
-        var loaded = Repo.GetUserByUsername("hermione");
+        var loaded = await Repo.GetUserByUsernameAsync("hermione");
 
         Assert.NotNull(loaded);
         Assert.Null(loaded.Pet);
         Assert.Empty(loaded.Quests);
+        Assert.Null(loaded.DisplayName);
     }
 
-    [Fact]
-    public void SaveUser_Twice_UpsertsInsteadOfDuplicating()
+    [SkippableFact]
+    public async Task SaveUser_Twice_UpsertsInsteadOfDuplicating()
     {
-        Repo.SaveUser(NewUser(coins: 5));
-        Repo.SaveUser(NewUser(coins: 9));
+        await Repo.SaveUserAsync(NewUser(coins: 5));
+        await Repo.SaveUserAsync(NewUser(coins: 9));
 
-        Assert.Equal(1, _db.Scalar("SELECT COUNT(*) FROM USERS"));
-        Assert.Equal(9, Repo.GetUserByUsername("hermione")!.TotalEcoKoin);
+        Assert.Equal(9, (await Repo.GetUserByUsernameAsync("hermione"))!.TotalEcoKoin);
     }
 
-    [Fact]
-    public void SaveUser_DuplicateUsernameForOtherUser_Throws()
+    [SkippableFact]
+    public async Task SaveUser_NullDisplayName_KeepsStoredDisplayName()
     {
-        Repo.SaveUser(NewUser("u1", "hermione"));
+        await Repo.SaveUserAsync(NewUser(displayName: "Hermione G."));
+        await Repo.SaveUserAsync(NewUser(coins: 3, displayName: null));
 
-        Assert.Throws<SqliteException>(() => Repo.SaveUser(NewUser("u2", "hermione")));
-        Assert.Equal(1, _db.Scalar("SELECT COUNT(*) FROM USERS"));
+        var loaded = (await Repo.GetUserByUsernameAsync("hermione"))!;
+        Assert.Equal("Hermione G.", loaded.DisplayName);
+        Assert.Equal(3, loaded.TotalEcoKoin);
     }
 
-    [Fact]
-    public void SaveUser_IsAtomic_FailingQuestRollsBackUser()
+    [SkippableFact]
+    public async Task SaveUser_DuplicateUsernameForOtherUser_ThrowsDuplicateUsernameException()
+    {
+        await Repo.SaveUserAsync(NewUser("u1", "hermione", coins: 7));
+
+        var ex = await Assert.ThrowsAsync<DuplicateUsernameException>(() => Repo.SaveUserAsync(NewUser("u2", "hermione")));
+
+        Assert.Equal("hermione", ex.Username);
+        var stored = (await Repo.GetUserByUsernameAsync("hermione"))!;
+        Assert.Equal("u1", stored.UserId);
+        Assert.Equal(7, stored.TotalEcoKoin);
+    }
+
+    [SkippableFact]
+    public async Task SaveUser_IsAtomic_FailingQuestRollsBackUser()
     {
         var user = NewUser();
         // target_value must be > 0 (CHECK) -> the quest insert fails after the user row was written
         user.Quests.Add(new SleepQuest("q1", user.UserId, "bad", 0, 30, Today));
 
-        Assert.Throws<SqliteException>(() => Repo.SaveUser(user));
-        Assert.Equal(0, _db.Scalar("SELECT COUNT(*) FROM USERS"));
+        await Assert.ThrowsAnyAsync<Exception>(() => Repo.SaveUserAsync(user));
+
+        Assert.Null(await Repo.GetUserByUsernameAsync("hermione"));
     }
 
-    [Fact]
-    public void UpdateUserProfile_PersistsCoinsAndPetState()
+    [SkippableFact]
+    public async Task UpdateUserProfile_PersistsCoinsAndPetState()
     {
         var user = NewUser(coins: 10);
         user.Pet = new EcoPet("p1", user.UserId, 10, PetState.Lemas);
-        Repo.SaveUser(user);
+        await Repo.SaveUserAsync(user);
 
         var changed = new User(user.UserId, user.Username, user.PasswordHash, 85, user.JoinDate)
         {
             Pet = new EcoPet("p1", user.UserId, 90, PetState.Segar)
         };
-        Repo.UpdateUserProfile(changed);
+        await Repo.UpdateUserProfileAsync(changed);
 
-        var loaded = Repo.GetUserByUsername("hermione")!;
+        var loaded = (await Repo.GetUserByUsernameAsync("hermione"))!;
         Assert.Equal(85, loaded.TotalEcoKoin);
         Assert.Equal(90, loaded.Pet!.HappinessLevel);
         Assert.Equal(PetState.Segar, loaded.Pet.CurrentState);
     }
 
-    [Fact]
-    public void UpdateUserProfile_UnknownUser_Throws()
+    [SkippableFact]
+    public async Task UpdateUserProfile_UnknownUser_Throws()
     {
-        Assert.Throws<InvalidOperationException>(() => Repo.UpdateUserProfile(NewUser("ghost", "ghost")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Repo.UpdateUserProfileAsync(NewUser("ghost", "ghost")));
     }
 
     // ---- quests --------------------------------------------------------------------------
 
-    [Fact]
-    public void SaveQuestProgress_UpdatesProgressAndClaimedFlag()
+    [SkippableFact]
+    public async Task SaveQuestProgress_UpdatesProgressAndClaimedFlag()
     {
-        Repo.SaveUser(NewUser());
-        Repo.SaveQuestProgress(NewSleepQuest("q1", "u1", Today));
+        await Repo.SaveUserAsync(NewUser());
+        await Repo.SaveQuestProgressAsync(NewSleepQuest("q1", "u1", Today));
 
-        Repo.SaveQuestProgress(NewSleepQuest("q1", "u1", Today, progress: 1, claimed: true));
+        await Repo.SaveQuestProgressAsync(NewSleepQuest("q1", "u1", Today, progress: 1, claimed: true));
 
-        Assert.Equal(1, _db.Scalar("SELECT COUNT(*) FROM DAILY_QUESTS"));
-        var quest = Assert.Single(Repo.GetUserByUsername("hermione")!.Quests);
+        var quest = Assert.Single((await Repo.GetUserByUsernameAsync("hermione"))!.Quests);
         Assert.Equal(1, quest.CurrentProgress);
         Assert.True(quest.IsClaimed);
     }
 
-    [Fact]
-    public void SaveQuestProgress_UnknownUser_ViolatesForeignKey()
+    [SkippableFact]
+    public async Task SaveQuestProgress_UnknownUser_Throws()
     {
-        Assert.Throws<SqliteException>(() => Repo.SaveQuestProgress(NewSleepQuest("q1", "ghost", Today)));
+        await Assert.ThrowsAnyAsync<Exception>(() => Repo.SaveQuestProgressAsync(NewSleepQuest("q1", "ghost", Today)));
     }
 
-    [Fact]
-    public void EnsureDailyQuests_CreatesThreeDefaultsOnlyOnce()
+    [SkippableFact]
+    public async Task EnsureDailyQuests_CreatesThreeDefaultsOnlyOnce()
     {
-        Repo.SaveUser(NewUser());
+        await Repo.SaveUserAsync(NewUser());
 
-        var first = Repo.EnsureDailyQuests("u1", Today);
-        var second = Repo.EnsureDailyQuests("u1", Today);
+        var first = await Repo.EnsureDailyQuestsAsync("u1", Today);
+        var second = await Repo.EnsureDailyQuestsAsync("u1", Today);
 
         Assert.Equal(3, first.Count);
         Assert.Equal(3, second.Count);
         Assert.Equal(first.Select(q => q.QuestId).OrderBy(x => x), second.Select(q => q.QuestId).OrderBy(x => x));
-        Assert.Equal(3, _db.Scalar("SELECT COUNT(*) FROM DAILY_QUESTS"));
+        Assert.Equal(3, (await Repo.GetUserByUsernameAsync("hermione"))!.Quests.Count);
         Assert.Contains(first, q => q is SleepQuest { TargetValue: 1, RewardCoin: 30 });
         Assert.Contains(first, q => q is PowerSaverQuest { TargetValue: 240, RewardCoin: 20 });
         Assert.Contains(first, q => q is WeatherAdaptiveQuest { TargetValue: 1, RewardCoin: 15 });
         Assert.All(first, q => Assert.Equal(Today, q.QuestDate));
     }
 
-    [Fact]
-    public void EnsureDailyQuests_NewDay_CreatesNewSetAndGetUserReturnsLatestDay()
+    [SkippableFact]
+    public async Task EnsureDailyQuests_NewDay_CreatesNewSetAndGetUserReturnsLatestDay()
     {
-        Repo.SaveUser(NewUser());
-        Repo.EnsureDailyQuests("u1", Today);
+        await Repo.SaveUserAsync(NewUser());
+        var todays = await Repo.EnsureDailyQuestsAsync("u1", Today);
         var tomorrow = Today.AddDays(1);
 
-        Repo.EnsureDailyQuests("u1", tomorrow);
+        var tomorrows = await Repo.EnsureDailyQuestsAsync("u1", tomorrow);
 
-        Assert.Equal(6, _db.Scalar("SELECT COUNT(*) FROM DAILY_QUESTS"));
-        var loaded = Repo.GetUserByUsername("hermione")!;
+        Assert.Empty(todays.Select(q => q.QuestId).Intersect(tomorrows.Select(q => q.QuestId)));
+        var loaded = (await Repo.GetUserByUsernameAsync("hermione"))!;
         Assert.Equal(3, loaded.Quests.Count);
         Assert.All(loaded.Quests, q => Assert.Equal(tomorrow, q.QuestDate));
+        Assert.Equal(3, (await Repo.EnsureDailyQuestsAsync("u1", Today)).Count); // old day is still intact
     }
 
-    [Fact]
-    public void EnsureDailyQuests_UnknownUser_Throws()
+    [SkippableFact]
+    public async Task EnsureDailyQuests_UnknownUser_Throws()
     {
-        Assert.Throws<SqliteException>(() => Repo.EnsureDailyQuests("ghost", Today));
-        Assert.Equal(0, _db.Scalar("SELECT COUNT(*) FROM DAILY_QUESTS"));
+        await Assert.ThrowsAnyAsync<Exception>(() => Repo.EnsureDailyQuestsAsync("ghost", Today));
     }
 
     // ---- power sessions ------------------------------------------------------------------
 
-    [Fact]
-    public void SavePowerSession_RoundTripsClosedAndRunningSessions()
+    [SkippableFact]
+    public async Task SavePowerSession_RoundTripsClosedAndRunningSessions()
     {
-        Repo.SaveUser(NewUser());
+        await Repo.SaveUserAsync(NewUser());
         var closed = new PowerSession("s1", "u1", "scheme-power-saver", Now.AddHours(-3), Now.AddHours(-2), 32.5);
         var running = new PowerSession("s2", "u1", "scheme-balanced", Now.AddMinutes(-10));
 
-        Repo.SavePowerSession(closed);
-        Repo.SavePowerSession(running);
-        var sessions = Repo.GetWeeklyReportData("u1", Now);
+        await Repo.SavePowerSessionAsync(closed);
+        await Repo.SavePowerSessionAsync(running);
+        var sessions = await Repo.GetWeeklyReportDataAsync("u1", Now);
 
         Assert.Equal(2, sessions.Count);
         Assert.Equal("s1", sessions[0].SessionId);
@@ -277,62 +278,70 @@ public class SqliteRepositoryTests : IDisposable
         Assert.Equal(0, sessions[1].WattSaved);
     }
 
-    [Fact]
-    public void SavePowerSession_SameIdTwice_UpdatesRow()
+    [SkippableFact]
+    public async Task SavePowerSession_SameIdTwice_UpdatesRow()
     {
-        Repo.SaveUser(NewUser());
-        Repo.SavePowerSession(new PowerSession("s1", "u1", "scheme-power-saver", Now.AddHours(-1)));
+        await Repo.SaveUserAsync(NewUser());
+        await Repo.SavePowerSessionAsync(new PowerSession("s1", "u1", "scheme-power-saver", Now.AddHours(-1)));
 
-        Repo.SavePowerSession(new PowerSession("s1", "u1", "scheme-power-saver", Now.AddHours(-1), Now, 20));
+        await Repo.SavePowerSessionAsync(new PowerSession("s1", "u1", "scheme-power-saver", Now.AddHours(-1), Now, 20));
 
-        Assert.Equal(1, _db.Scalar("SELECT COUNT(*) FROM POWER_SESSIONS"));
-        var saved = Assert.Single(Repo.GetWeeklyReportData("u1", Now));
+        var saved = Assert.Single(await Repo.GetWeeklyReportDataAsync("u1", Now));
         Assert.Equal(Now, saved.EndTime);
         Assert.Equal(20, saved.WattSaved);
     }
 
-    [Fact]
-    public void SavePowerSession_UnknownUser_ViolatesForeignKey()
+    [SkippableFact]
+    public async Task SavePowerSession_UnknownUser_Throws()
     {
         var session = new PowerSession("s1", "ghost", "scheme-power-saver", Now);
 
-        Assert.Throws<SqliteException>(() => Repo.SavePowerSession(session));
+        await Assert.ThrowsAnyAsync<Exception>(() => Repo.SavePowerSessionAsync(session));
     }
 
-    [Fact]
-    public void SavePowerSession_UnknownScheme_ViolatesForeignKey()
+    [SkippableFact]
+    public async Task SavePowerSession_UnknownScheme_Throws()
     {
-        Repo.SaveUser(NewUser());
+        await Repo.SaveUserAsync(NewUser());
         var session = new PowerSession("s1", "u1", "no-such-scheme", Now);
 
-        Assert.Throws<SqliteException>(() => Repo.SavePowerSession(session));
+        await Assert.ThrowsAnyAsync<Exception>(() => Repo.SavePowerSessionAsync(session));
     }
 
-    [Fact]
-    public void GetWeeklyReportData_FiltersWindowAndUser_OrderedByStart()
+    [SkippableFact]
+    public async Task GetWeeklyReportData_FiltersWindowAndUser_OrderedByStart()
     {
-        Repo.SaveUser(NewUser("u1", "hermione"));
-        Repo.SaveUser(NewUser("u2", "ron"));
+        await Repo.SaveUserAsync(NewUser("u1", "hermione"));
+        await Repo.SaveUserAsync(NewUser("u2", "ron"));
         const string scheme = "scheme-power-saver";
-        Repo.SavePowerSession(new PowerSession("new", "u1", scheme, Now.AddDays(-1), Now.AddDays(-1).AddHours(1), 10));
-        Repo.SavePowerSession(new PowerSession("old", "u1", scheme, Now.AddDays(-8), Now.AddDays(-8).AddHours(1), 10));
-        Repo.SavePowerSession(new PowerSession("edge", "u1", scheme, Now.AddDays(-7), Now.AddDays(-7).AddHours(1), 10));
-        Repo.SavePowerSession(new PowerSession("mid", "u1", scheme, Now.AddDays(-3), Now.AddDays(-3).AddHours(1), 10));
-        Repo.SavePowerSession(new PowerSession("other", "u2", scheme, Now.AddDays(-1), Now.AddDays(-1).AddHours(1), 10));
+        await Repo.SavePowerSessionAsync(new PowerSession("new", "u1", scheme, Now.AddDays(-1), Now.AddDays(-1).AddHours(1), 10));
+        await Repo.SavePowerSessionAsync(new PowerSession("old", "u1", scheme, Now.AddDays(-8), Now.AddDays(-8).AddHours(1), 10));
+        await Repo.SavePowerSessionAsync(new PowerSession("edge", "u1", scheme, Now.AddDays(-7), Now.AddDays(-7).AddHours(1), 10));
+        await Repo.SavePowerSessionAsync(new PowerSession("mid", "u1", scheme, Now.AddDays(-3), Now.AddDays(-3).AddHours(1), 10));
+        await Repo.SavePowerSessionAsync(new PowerSession("other", "u2", scheme, Now.AddDays(-1), Now.AddDays(-1).AddHours(1), 10));
 
-        var sessions = Repo.GetWeeklyReportData("u1", Now);
+        var sessions = await Repo.GetWeeklyReportDataAsync("u1", Now);
 
         Assert.Equal(new[] { "edge", "mid", "new" }, sessions.Select(s => s.SessionId).ToArray());
     }
 
-    // ---- connection rules ----------------------------------------------------------------
+    // ---- cancellation / orphans ----------------------------------------------------------
 
-    [Fact]
-    public void Repository_EnforcesForeignKeysOnEveryCall()
+    [SkippableFact]
+    public async Task CancelledToken_ThrowsOperationCanceled()
     {
-        // Each repository call opens a fresh connection; all of them must reject orphan rows.
-        Assert.Throws<SqliteException>(() => Repo.SaveQuestProgress(NewSleepQuest("q1", "ghost", Today)));
-        Assert.Throws<SqliteException>(() => Repo.SaveQuestProgress(NewSleepQuest("q2", "ghost", Today)));
-        Assert.Equal(0, _db.Scalar("SELECT COUNT(*) FROM DAILY_QUESTS"));
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Repo.GetPowerSchemesAsync(cts.Token));
+    }
+
+    [SkippableFact]
+    public async Task OrphanRows_AreRejectedOnEveryCall()
+    {
+        await Assert.ThrowsAnyAsync<Exception>(() => Repo.SaveQuestProgressAsync(NewSleepQuest("q1", "ghost", Today)));
+        await Assert.ThrowsAnyAsync<Exception>(() => Repo.SaveQuestProgressAsync(NewSleepQuest("q2", "ghost", Today)));
+        await Repo.SaveUserAsync(NewUser());
+        Assert.Empty((await Repo.GetUserByUsernameAsync("hermione"))!.Quests);
     }
 }
