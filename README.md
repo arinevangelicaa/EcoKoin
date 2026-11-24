@@ -25,20 +25,20 @@ Aplikasi WPF dengan pola MVVM. Logika domain, service, dan akses data berada di 
 | Lapisan | Isi |
 |---|---|
 | Model | `User`, `DailyQuest` (+ `SleepQuest`, `PowerSaverQuest`, `WeatherAdaptiveQuest`), `EcoPet`, `PowerScheme`, `PowerSession`, `WeatherData`, `CarbonFinancialReport` |
-| Service | `PowerMonitorService` (idle + skema daya), `WeatherService` (OpenWeatherMap), `SqliteRepository` |
+| Service | `PowerMonitorService` (idle + skema daya), `WeatherService` (OpenWeatherMap), `IAppRepository` / `PostgresRepository` |
 | ViewModel / View | `MainViewModel`; Dashboard, Misi & Reward, Analisis, Pengaturan |
-| Data | SQLite lokal, 5 tabel (`USERS`, `DAILY_QUESTS`, `ECO_PETS`, `POWER_SCHEMES`, `POWER_SESSIONS`) |
+| Data | PostgreSQL remote (tanpa database lokal), 5 tabel (`USERS`, `DAILY_QUESTS`, `ECO_PETS`, `POWER_SCHEMES`, `POWER_SESSIONS`) |
 
 ## Struktur Repositori (target)
 
 ```
 EcoKoin/
 ├── src/
-│   ├── EcoKoin.Core/                   Models, Services, ViewModels, schema.sql
+│   ├── EcoKoin.Core/                   Models, Services, ViewModels, Database/schema.sql
 │   ├── EcoKoin.WPF/                    Aplikasi desktop
 │   └── EcoKoin.WinForms.Prototype/     Arsip prototipe PBO
 ├── tests/EcoKoin.Core.Tests/
-├── Database/                           schema.sql, seed.sql, ecokoin.db
+├── Database/                           arsip bukti ERD v1 (tidak dipakai aplikasi)
 └── docs/                               Dokumentasi lengkap
 ```
 
@@ -46,22 +46,23 @@ EcoKoin/
 
 Dokumentasi di `docs/` menjelaskan produk dalam kondisi target. Posisi repositori sekarang:
 
-- `EcoKoin.Core` (`src/EcoKoin.Core`) sudah berisi logika domain, `SqliteRepository` (skema v2), `PowerMonitorService`, `WeatherService`, dan `MainViewModel`, dengan 156 unit test (`tests/EcoKoin.Core.Tests`). Build/test dapat dijalankan di Linux: `dotnet test EcoKoin.sln`.
-- Dashboard WPF berupa UI statis hasil slicing Figma.
+- `EcoKoin.Core` (`src/EcoKoin.Core`) sudah berisi logika domain, `IAppRepository` + `PostgresRepository` (skema v2, PostgreSQL remote; SQLite hanya di proyek tes), `PowerMonitorService`, `WeatherService`, dan `MainViewModel` (async), dengan unit test di `tests/EcoKoin.Core.Tests`. Build/test dapat dijalankan di Linux: `dotnet test EcoKoin.sln`.
+- UI WPF (splash, login, registrasi, dashboard) dikerjakan tim UI; login/registrasi sudah memakai Core dan database PostgreSQL. `MainViewModel` belum terhubung ke dashboard.
 - Prototipe WinForms berjalan sebagai demo PBO dengan PostgreSQL.
 
 Perbandingan target vs saat ini dan roadmap: [docs/08-status-roadmap.md](docs/08-status-roadmap.md).
 
 ## Menjalankan
 
-Butuh Windows dan .NET SDK 10.
+Butuh Windows, .NET SDK 10, dan **server PostgreSQL** (persyaratan tugas tidak mengizinkan database lokal).
 
 ```powershell
+$env:ECOKOIN_DB_CONNECTION = "Host=<host>;Port=5432;Database=<db>;Username=<user>;Password=<password>;SSL Mode=Require"
 dotnet build EcoKoin.sln
 dotnet run --project src\EcoKoin.WPF
 ```
 
-Set `ECOKOIN_WEATHER_API_KEY` untuk fitur cuaca. Panduan lengkap (dan cara menjalankan kondisi repo saat ini): [docs/07-setup.md](docs/07-setup.md).
+Connection string tidak disimpan di repo; minta ke tim lewat kanal privat. Set `ECOKOIN_WEATHER_API_KEY` untuk fitur cuaca. Panduan lengkap (dan cara menjalankan kondisi repo saat ini): [docs/07-setup.md](docs/07-setup.md).
 
 ## Dokumentasi
 
@@ -70,7 +71,7 @@ Set `ECOKOIN_WEATHER_API_KEY` untuk fitur cuaca. Panduan lengkap (dan cara menja
 | [Ringkasan Produk](docs/01-overview.md) | Latar belakang, fitur, kompetitor |
 | [Arsitektur](docs/02-architecture.md) | Struktur repo, komponen, alur data |
 | [Model Domain](docs/03-domain-model.md) | Referensi class + class diagram |
-| [Basis Data](docs/04-database.md) | Skema SQLite, ERD, cara build ulang |
+| [Basis Data](docs/04-database.md) | Skema PostgreSQL, ERD, cara build ulang |
 | [Aplikasi WPF](docs/05-wpf-app.md) | Layout dashboard, design token |
 | [Prototipe WinForms](docs/06-winforms-prototype.md) | Konsep PBO, akses PostgreSQL |
 | [Setup & Menjalankan](docs/07-setup.md) | Prasyarat, build, konfigurasi |

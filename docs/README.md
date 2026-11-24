@@ -1,6 +1,6 @@
 # Dokumentasi EcoKoin
 
-Dokumentasi lengkap EcoKoin dalam **kondisi target** (produk selesai: semua fitur berfungsi, satu solusi terpadu, SQLite, MVVM). Dokumen 1–7 adalah spesifikasi target. Posisi repositori saat ini (branch `544058`, setelah merge PR #9) dan selisihnya terhadap target dicatat di [Status & Roadmap](08-status-roadmap.md).
+Dokumentasi lengkap EcoKoin dalam **kondisi target** (produk selesai: semua fitur berfungsi, satu solusi terpadu, PostgreSQL remote, MVVM). Dokumen 1–7 adalah spesifikasi target. Posisi repositori saat ini (branch `544058`, setelah merge PR #9) dan selisihnya terhadap target dicatat di [Status & Roadmap](08-status-roadmap.md).
 
 ## Daftar isi
 
@@ -9,7 +9,7 @@ Dokumentasi lengkap EcoKoin dalam **kondisi target** (produk selesai: semua fitu
 | 1 | [Ringkasan Produk](01-overview.md) | Latar belakang, masalah, solusi, fitur, kompetitor, tim |
 | 2 | [Arsitektur & Struktur Repositori](02-architecture.md) | Layout folder, komponen, alur data, hubungan antar bagian |
 | 3 | [Model Domain](03-domain-model.md) | Referensi class `Models/`, `Services/`, `ViewModels/` + class diagram |
-| 4 | [Basis Data](04-database.md) | Skema SQLite, DDL, cara membuat ulang, pemakaian dari kode |
+| 4 | [Basis Data](04-database.md) | Skema PostgreSQL, DDL, cara membuat ulang, pengujian |
 | 5 | [Aplikasi WPF](05-wpf-app.md) | Struktur UI dashboard, design token, status implementasi |
 | 6 | [Prototipe WinForms (arsip)](06-winforms-prototype.md) | Prototipe PBO (inheritance, polymorphism), koneksi PostgreSQL |
 | 7 | [Setup & Menjalankan](07-setup.md) | Prasyarat, build, run, konfigurasi |
@@ -23,4 +23,4 @@ Dokumen yang sudah ada sebelumnya:
 
 ## Gambaran satu paragraf
 
-EcoKoin adalah aplikasi desktop C# (WPF, MVVM) yang menggabungkan pemantauan daya PC, gamifikasi (EcoKoin, Daily Quest, EcoPet), dan data cuaca OpenWeatherMap untuk mendorong penghematan energi, dengan data tersimpan di SQLite lokal. Logika domain berada di `EcoKoin.Core`, UI di `EcoKoin.WPF`; prototipe WinForms disimpan sebagai arsip PBO.
+EcoKoin adalah aplikasi desktop C# (WPF, MVVM) yang menggabungkan pemantauan daya PC, gamifikasi (EcoKoin, Daily Quest, EcoPet), dan data cuaca OpenWeatherMap untuk mendorong penghematan energi, dengan data tersimpan di PostgreSQL remote (tanpa database lokal). Logika domain berada di `EcoKoin.Core`, UI di `EcoKoin.WPF`; prototipe WinForms disimpan sebagai arsip PBO.
