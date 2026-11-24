@@ -65,8 +65,8 @@ namespace EcoKoin.Services
         /// </summary>
         Task<IReadOnlyList<DailyQuest>> EnsureDailyQuestsAsync(string userId, DateOnly date, CancellationToken ct = default);
 
-        // ---- Dashboard, quest and analytics queries (ported from the teammate's SqliteRepository, now async) ----
-        // Semantics are defined by the original implementations: `git show origin/main:src/EcoKoin.Core/Services/SqliteRepository.cs`.
+        // ---- Dashboard, quest and analytics queries ----
+        // Behaviour is pinned by RepositoryDashboardContractTests, which every implementation must pass.
 
         /// <summary>Records one Power Saver sample minute for the quest; progress only moves forward (see original RecordPowerSaverMinute).</summary>
         Task RecordPowerSaverMinuteAsync(string userId, string questId, DateOnly date, long sampleMinute, CancellationToken ct = default);
