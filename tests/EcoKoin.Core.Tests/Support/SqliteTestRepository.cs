@@ -1,32 +1,34 @@
 using System.Globalization;
 using EcoKoin.Models;
+using EcoKoin.Services;
 using Microsoft.Data.Sqlite;
 
-namespace EcoKoin.Services
+namespace EcoKoin.Core.Tests.Support
 {
     /// <summary>
-    /// SQLite persistence. Spec: docs/03-domain-model.md (SqliteRepository) and docs/04-database.md.
+    /// SQLite stand-in for <see cref="IAppRepository"/>, used by tests only (the product uses a remote PostgreSQL database).
+    /// Spec: docs/03-domain-model.md and docs/04-database.md.
     /// Rules: PRAGMA foreign_keys = ON on every connection; parameterized queries only; transactions for multi-table writes.
     /// Dates are stored as "yyyy-MM-dd HH:mm:ss" (invariant culture); quest_date as "yyyy-MM-dd".
     /// </summary>
-    public class SqliteRepository
+    public sealed class SqliteTestRepository : IAppRepository
     {
         private const string DateTimeFormat = "yyyy-MM-dd HH:mm:ss";
         private const string DateFormat = "yyyy-MM-dd";
 
         private readonly string _connectionString;
 
-        public SqliteRepository(string connectionString = "Data Source=ecokoin.db")
+        public SqliteTestRepository(string connectionString = "Data Source=ecokoin-test.db")
         {
             _connectionString = connectionString;
         }
 
-        /// <summary>Runs Database/schema.sql then Database/seed.sql (both from AppContext.BaseDirectory). Idempotent.</summary>
-        public void InitializeDatabase()
+        /// <summary>Runs Support/sqlite/schema.sql then seed.sql (both from AppContext.BaseDirectory). Idempotent.</summary>
+        private void InitializeDatabaseCore()
         {
             EnsureDatabaseDirectory();
 
-            string dbDir = Path.Combine(AppContext.BaseDirectory, "Database");
+            string dbDir = Path.Combine(AppContext.BaseDirectory, "Support", "sqlite");
             string schemaSql = File.ReadAllText(Path.Combine(dbDir, "schema.sql"));
             string seedSql = File.ReadAllText(Path.Combine(dbDir, "seed.sql"));
 
@@ -52,9 +54,21 @@ namespace EcoKoin.Services
 
         /// <summary>
         /// Upserts USERS (+ ECO_PETS if Pet != null) and all <see cref="User.Quests"/> in one transaction.
-        /// A different user with the same username violates UNIQUE and surfaces as <see cref="SqliteException"/>.
+        /// A different user with the same username violates UNIQUE and is translated to <see cref="DuplicateUsernameException"/>.
         /// </summary>
-        public void SaveUser(User user)
+        private void SaveUserCore(User user)
+        {
+            try
+            {
+                SaveUserUnchecked(user);
+            }
+            catch (SqliteException ex) when (ex.SqliteExtendedErrorCode == 2067 && ex.Message.Contains("USERS.username"))
+            {
+                throw new DuplicateUsernameException(user.Username, ex);
+            }
+        }
+
+        private void SaveUserUnchecked(User user)
         {
             using var connection = OpenConnection();
             using var tx = connection.BeginTransaction();
@@ -89,9 +103,9 @@ namespace EcoKoin.Services
 
         /// <summary>
         /// Loads the user with Pet and Quests; null if not found. Quests are the ones of the latest
-        /// quest_date stored for the user (i.e. "today's" quests once <see cref="EnsureDailyQuests"/> ran).
+        /// quest_date stored for the user (i.e. "today's" quests once <see cref="EnsureDailyQuestsAsync"/> ran).
         /// </summary>
-        public User? GetUserByUsername(string u)
+        private User? GetUserByUsernameCore(string u)
         {
             using var connection = OpenConnection();
 
@@ -151,7 +165,7 @@ namespace EcoKoin.Services
         /// Updates total_ecokoin, the pet and the quests of an existing user in one transaction.
         /// Throws <see cref="InvalidOperationException"/> if the user does not exist.
         /// </summary>
-        public void UpdateUserProfile(User user)
+        private void UpdateUserProfileCore(User user)
         {
             using var connection = OpenConnection();
             using var tx = connection.BeginTransaction();
@@ -174,7 +188,7 @@ namespace EcoKoin.Services
         }
 
         /// <summary>Insert or update POWER_SESSIONS row (end_time may be NULL). FK violations throw <see cref="SqliteException"/>.</summary>
-        public void SavePowerSession(PowerSession session)
+        private void SavePowerSessionCore(PowerSession session)
         {
             using var connection = OpenConnection();
             using var cmd = connection.CreateCommand();
@@ -197,14 +211,14 @@ namespace EcoKoin.Services
         }
 
         /// <summary>Upserts the quest row; on an existing row current_progress and is_claimed are updated.</summary>
-        public void SaveQuestProgress(DailyQuest quest)
+        private void SaveQuestProgressCore(DailyQuest quest)
         {
             using var connection = OpenConnection();
             UpsertQuest(connection, null, quest);
         }
 
         /// <summary>Closed and running sessions of <paramref name="userId"/> with start_time in the last 7 days from <paramref name="now"/>, ordered by start_time.</summary>
-        public IReadOnlyList<PowerSession> GetWeeklyReportData(string userId, DateTime now)
+        private IReadOnlyList<PowerSession> GetWeeklyReportDataCore(string userId, DateTime now)
         {
             var result = new List<PowerSession>();
 
@@ -232,7 +246,7 @@ namespace EcoKoin.Services
         }
 
         /// <summary>All power schemes ordered by cpu_max_performance (lowest first).</summary>
-        public IReadOnlyList<PowerScheme> GetPowerSchemes()
+        private IReadOnlyList<PowerScheme> GetPowerSchemesCore()
         {
             var result = new List<PowerScheme>();
 
@@ -248,7 +262,7 @@ namespace EcoKoin.Services
         }
 
         /// <summary>Creates the 3 default quests for <paramref name="date"/> if the user has none for that date; returns that day's quests.</summary>
-        public IReadOnlyList<DailyQuest> EnsureDailyQuests(string userId, DateOnly date)
+        private IReadOnlyList<DailyQuest> EnsureDailyQuestsCore(string userId, DateOnly date)
         {
             using var connection = OpenConnection();
             using var tx = connection.BeginTransaction();
@@ -287,6 +301,63 @@ namespace EcoKoin.Services
 
             tx.Commit();
             return quests;
+        }
+
+        // ---- IAppRepository (async facade over the synchronous SQLite work) -------------------
+
+        public Task InitializeDatabaseAsync(CancellationToken ct = default)
+            => Run(ct, InitializeDatabaseCore);
+
+        public Task SaveUserAsync(User user, CancellationToken ct = default)
+            => Run(ct, () => SaveUserCore(user));
+
+        public Task<User?> GetUserByUsernameAsync(string username, CancellationToken ct = default)
+            => Run(ct, () => GetUserByUsernameCore(username));
+
+        public Task UpdateUserProfileAsync(User user, CancellationToken ct = default)
+            => Run(ct, () => UpdateUserProfileCore(user));
+
+        public Task SavePowerSessionAsync(PowerSession session, CancellationToken ct = default)
+            => Run(ct, () => SavePowerSessionCore(session));
+
+        public Task SaveQuestProgressAsync(DailyQuest quest, CancellationToken ct = default)
+            => Run(ct, () => SaveQuestProgressCore(quest));
+
+        public Task<IReadOnlyList<PowerSession>> GetWeeklyReportDataAsync(string userId, DateTime now, CancellationToken ct = default)
+            => Run(ct, () => GetWeeklyReportDataCore(userId, now));
+
+        public Task<IReadOnlyList<PowerScheme>> GetPowerSchemesAsync(CancellationToken ct = default)
+            => Run(ct, GetPowerSchemesCore);
+
+        public Task<IReadOnlyList<DailyQuest>> EnsureDailyQuestsAsync(string userId, DateOnly date, CancellationToken ct = default)
+            => Run(ct, () => EnsureDailyQuestsCore(userId, date));
+
+        /// <summary>Runs the work synchronously; exceptions are delivered through the returned task.</summary>
+        private static Task Run(CancellationToken ct, Action work)
+        {
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                work();
+                return Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                return Task.FromException(ex);
+            }
+        }
+
+        private static Task<T> Run<T>(CancellationToken ct, Func<T> work)
+        {
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                return Task.FromResult(work());
+            }
+            catch (Exception ex)
+            {
+                return Task.FromException<T>(ex);
+            }
         }
 
         // ---- helpers -------------------------------------------------------------------------
