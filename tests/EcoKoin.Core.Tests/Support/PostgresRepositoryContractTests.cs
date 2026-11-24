@@ -15,6 +15,10 @@ public sealed class PostgresRepositoryContractTests : RepositoryContractTests
 {
     public const string ConnectionVariable = "ECOKOIN_TEST_PG_CONNECTION";
 
+    // Hosted servers (e.g. Supabase's session pooler) allow only a handful of connections, so every pool
+    // used by the tests is kept small. Extra concurrent callers simply queue on the pool.
+    private const int MaxPoolSize = 3;
+
     private static readonly string? AdminConnectionString = ReadConnectionString();
 
     private string? _schema;
@@ -35,7 +39,12 @@ public sealed class PostgresRepositoryContractTests : RepositoryContractTests
             await cmd.ExecuteNonQueryAsync();
         }
 
-        var builder = new NpgsqlConnectionStringBuilder(AdminConnectionString) { SearchPath = _schema };
+        var builder = new NpgsqlConnectionStringBuilder(AdminConnectionString)
+        {
+            SearchPath = _schema,
+            MaxPoolSize = MaxPoolSize,
+            MinPoolSize = 0
+        };
         _repository = new PostgresRepository(builder.ConnectionString);
         await _repository.InitializeDatabaseAsync();
         return _repository;
@@ -96,6 +105,9 @@ public sealed class PostgresRepositoryContractTests : RepositoryContractTests
     private static string? ReadConnectionString()
     {
         string? value = Environment.GetEnvironmentVariable(ConnectionVariable)?.Trim();
-        return string.IsNullOrEmpty(value) ? null : value;
+        if (string.IsNullOrEmpty(value))
+            return null;
+
+        return new NpgsqlConnectionStringBuilder(value) { MaxPoolSize = 2, MinPoolSize = 0 }.ConnectionString;
     }
 }
