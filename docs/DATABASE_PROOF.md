@@ -1,12 +1,12 @@
 # EcoKoin Database — Bukti Pembuatan
 
-> `Database/ecokoin.db` di bawah dibuat dari skema **v1**. Skema saat ini (v2) ada di `src/EcoKoin.Core/Database/schema.sql` (+ `seed.sql`); lihat [04-database.md](04-database.md).
+> Dokumen ini adalah **bukti historis** pembuatan skema **v1** (Modul 4) pada SQLite. Aplikasi sekarang **tidak memakai database lokal**: skema saat ini (v2) berjalan di PostgreSQL remote, lihat `src/EcoKoin.Core/Database/schema.sql` dan [04-database.md](04-database.md). File `Database/ecokoin.db` hanya arsip.
 
 Database dibuat dari skema v1 (`schema.sql`), hasil jadi file `Database/ecokoin.db` (SQLite).
 
-Cara buat ulang:
+Cara buat ulang (hanya untuk verifikasi bukti v1; ambil skema v1 dari riwayat git):
 ```bash
-sqlite3 Database/ecokoin.db < src/EcoKoin.Core/Database/schema.sql
+git show 27c54bb:Database/schema.sql | sqlite3 /tmp/ecokoin-v1.db
 ```
 
 ## Tabel yang terbentuk

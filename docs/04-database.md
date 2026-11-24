@@ -1,8 +1,8 @@
 # 4. Basis Data
 
-> Spesifikasi **kondisi target** (skema v2). Baseline v1 (sesuai ERD tugas Modul 4) ada di [`Database/schema.sql`](../Database/schema.sql), [ERD.md](ERD.md), [DATABASE_PROOF.md](DATABASE_PROOF.md); perubahan v1 → v2 dirinci di bawah.
+> Spesifikasi **kondisi target** (skema v2). Baseline v1 (sesuai ERD tugas Modul 4) ada di [ERD.md](ERD.md) dan [DATABASE_PROOF.md](DATABASE_PROOF.md); perubahan v1 → v2 dirinci di bawah. Skema yang dijalankan aplikasi: [`src/EcoKoin.Core/Database/schema.sql`](../src/EcoKoin.Core/Database/schema.sql) (+ `seed.sql`), keduanya *embedded resource* di `EcoKoin.Core`.
 
-Basis data: **SQLite**, satu file lokal per pengguna (`%LOCALAPPDATA%\EcoKoin\ecokoin.db`).
+Basis data: **PostgreSQL remote** (server di luar PC pengguna), diakses lewat `Npgsql` dan `IAppRepository`. Persyaratan tugas **tidak mengizinkan database lokal**, sehingga aplikasi tidak membuat atau memakai file database di PC pengguna. Connection string dibaca dari environment variable `ECOKOIN_DB_CONNECTION` dan tidak pernah disimpan di repo ([dokumen 7](07-setup.md)). SQLite hanya dipakai di proyek tes (`SqliteTestRepository`).
 
 ## Diagram relasi
 
@@ -58,10 +58,11 @@ erDiagram
 | Kolom | Tipe | Constraint |
 |---|---|---|
 | `user_id` | TEXT | PK |
-| `username` | TEXT | NOT NULL, UNIQUE |
+| `username` | TEXT | NOT NULL, UNIQUE (`uq_users_username`); berisi email yang dinormalisasi (huruf kecil) |
+| `display_name` | TEXT | nama tampilan (boleh NULL) |
 | `password_hash` | TEXT | NOT NULL (PBKDF2, format `iter.salt.hash`) |
 | `total_ecokoin` | INTEGER | NOT NULL, default 0, `CHECK (>= 0)` |
-| `join_date` | TEXT | NOT NULL (`YYYY-MM-DD HH:MM:SS`) |
+| `join_date` | TIMESTAMP | NOT NULL |
 
 ### `DAILY_QUESTS`
 | Kolom | Tipe | Constraint |
@@ -73,8 +74,9 @@ erDiagram
 | `target_value` | INTEGER | NOT NULL, `> 0` |
 | `current_progress` | INTEGER | NOT NULL, default 0 |
 | `reward_coin` | INTEGER | NOT NULL, `> 0` |
-| `is_claimed` | INTEGER | NOT NULL, default 0 (0/1) |
-| `quest_date` | TEXT | NOT NULL (`YYYY-MM-DD`); quest direset tiap hari |
+| `is_claimed` | BOOLEAN | NOT NULL, default `FALSE` |
+| `quest_date` | DATE | NOT NULL; quest direset tiap hari |
+| `seq` | BIGINT | `GENERATED ALWAYS AS IDENTITY`; menjaga urutan penyisipan quest |
 
 ### `ECO_PETS`
 | Kolom | Tipe | Constraint |
@@ -97,9 +99,9 @@ erDiagram
 | `session_id` | TEXT | PK |
 | `user_id` | TEXT | NOT NULL, FK → `USERS` |
 | `scheme_id` | TEXT | NOT NULL, FK → `POWER_SCHEMES` |
-| `start_time` | TEXT | NOT NULL |
-| `end_time` | TEXT | NULL = sesi berjalan |
-| `watt_saved` | REAL | NOT NULL, default 0 |
+| `start_time` | TIMESTAMP | NOT NULL |
+| `end_time` | TIMESTAMP | NULL = sesi berjalan |
+| `watt_saved` | DOUBLE PRECISION | NOT NULL, default 0 |
 
 Indeks: `CREATE INDEX idx_sessions_user_start ON POWER_SESSIONS(user_id, start_time);` dan `idx_quests_user_date ON DAILY_QUESTS(user_id, quest_date);`.
 
@@ -111,6 +113,8 @@ Indeks: `CREATE INDEX idx_sessions_user_start ON POWER_SESSIONS(user_id, start_t
 | `DAILY_QUESTS.quest_type` | diskriminator subclass `SleepQuest` / `PowerSaverQuest` / `WeatherAdaptiveQuest` |
 | `DAILY_QUESTS.reward_coin`, `is_claimed`, `quest_date` | reward tombol *Klaim +N*, status klaim, reset harian |
 | `CHECK` constraint pada status/rentang | integritas di level DB |
+| `USERS.display_name` | nama tampilan akun di UI |
+| Dialek PostgreSQL | tipe `TIMESTAMP`/`DATE`/`BOOLEAN`/`DOUBLE PRECISION`, `GENERATED ... AS IDENTITY` |
 | Dua indeks | query laporan mingguan dan quest harian |
 
 Relasi dan entitas tidak berubah: 5 tabel, 4 relasi sama dengan [ERD.md](ERD.md). `WeatherData` dan `CarbonFinancialReport` tetap **bukan tabel**.
@@ -128,52 +132,64 @@ Relasi dan entitas tidak berubah: 5 tabel, 4 relasi sama dengan [ERD.md](ERD.md)
 
 ## Inisialisasi & data awal
 
-- `SqliteRepository.InitializeDatabase()` menjalankan `schema.sql` (semua `CREATE ... IF NOT EXISTS`, aman diulang).
-- `Database/seed.sql` mengisi `POWER_SCHEMES` (Power Saver 50, Balanced 80) dan akun demo; dijalankan hanya bila tabel kosong.
-- Quest harian dibuat otomatis (3 quest, `quest_date = hari ini`) saat startup bila belum ada.
+- `IAppRepository.InitializeDatabaseAsync()` (`PostgresRepository`) menjalankan `schema.sql` lalu `seed.sql` dalam satu transaksi. Semua `CREATE ... IF NOT EXISTS` dan `INSERT ... ON CONFLICT DO NOTHING`, jadi aman diulang. Pengguna database harus punya hak `CREATE` pada schema-nya (biasanya `public`) saat pertama kali dijalankan.
+- `seed.sql` hanya mengisi `POWER_SCHEMES` (Power Saver 50, Balanced 80). Tidak ada akun demo; akun dibuat lewat halaman registrasi.
+- Quest harian dibuat otomatis (3 quest, `quest_date = hari ini`) lewat `EnsureDailyQuestsAsync` bila belum ada.
 
-Membuat ulang manual:
+Membuat ulang / memeriksa manual dengan `psql` (ganti placeholder; jangan menulis password di riwayat shell, gunakan `PGPASSWORD` atau `~/.pgpass`):
 
 ```bash
-rm -f Database/ecokoin.db
-sqlite3 Database/ecokoin.db < Database/schema.sql
-sqlite3 Database/ecokoin.db < Database/seed.sql
+psql "host=<host> port=5432 dbname=<db> user=<user> sslmode=require" \
+     -f src/EcoKoin.Core/Database/schema.sql \
+     -f src/EcoKoin.Core/Database/seed.sql
+psql "host=<host> dbname=<db> user=<user> sslmode=require" -c "\dt"
 ```
+
+Hasil `\dt`: `daily_quests`, `eco_pets`, `power_schemes`, `power_sessions`, `users` (PostgreSQL menurunkan huruf nama tabel ke huruf kecil). Untuk mengosongkan database pengembangan: `DROP TABLE IF EXISTS power_sessions, daily_quests, eco_pets, power_schemes, users;` lalu jalankan ulang `schema.sql` dan `seed.sql`. **Jangan jalankan `DROP` pada database bersama tim tanpa kesepakatan.**
 
 ## Query utama
 
-Laporan mingguan (7 hari, per hari):
+Laporan mingguan (7 hari, per hari). Dalam kode, hasilnya dibaca sebagai `PowerSession` lalu diagregasi oleh `CarbonFinancialReport`; bentuk SQL-nya:
 
 ```sql
-SELECT date(start_time) AS hari,
-       SUM(watt_saved * (julianday(end_time) - julianday(start_time)) * 24) / 1000.0 AS kwh_saved
+SELECT start_time::date AS hari,
+       SUM(watt_saved * EXTRACT(EPOCH FROM (end_time - start_time)) / 3600.0) / 1000.0 AS kwh_saved
 FROM POWER_SESSIONS
-WHERE user_id = :user_id
+WHERE user_id = @user_id
   AND end_time IS NOT NULL
-  AND start_time >= datetime('now', '-7 days')
-GROUP BY date(start_time)
+  AND start_time >= @now - INTERVAL '7 days'
+GROUP BY start_time::date
 ORDER BY hari;
 ```
 
 Quest hari ini:
 
 ```sql
-SELECT * FROM DAILY_QUESTS WHERE user_id = :user_id AND quest_date = date('now');
+SELECT * FROM DAILY_QUESTS WHERE user_id = @user_id AND quest_date = CURRENT_DATE;
 ```
 
 Klaim reward (satu transaksi):
 
 ```sql
 BEGIN;
-UPDATE DAILY_QUESTS SET is_claimed = 1
- WHERE quest_id = :id AND is_claimed = 0 AND current_progress >= target_value;
-UPDATE USERS SET total_ecokoin = total_ecokoin + :reward WHERE user_id = :user_id;
+UPDATE DAILY_QUESTS SET is_claimed = TRUE
+ WHERE quest_id = @id AND is_claimed = FALSE AND current_progress >= target_value;
+UPDATE USERS SET total_ecokoin = total_ecokoin + @reward WHERE user_id = @user_id;
 COMMIT;
 ```
 
+Pada kode, klaim dilakukan di sisi model (`DailyQuest.Claim(user)`) lalu disimpan lewat `UpdateUserProfileAsync` dalam satu transaksi.
+
+## Pengujian database
+
+- **Suite kontrak** `RepositoryContractTests` (24 tes) berlaku untuk semua implementasi `IAppRepository`: round-trip user/pet/quest, sesi daya (termasuk sesi berjalan), jendela laporan mingguan, FK, `CHECK`, nama pengguna ganda → `DuplicateUsernameException`, pembatalan token.
+- `SqliteRepositoryContractTests` menjalankannya pada SQLite sementara (selalu jalan, offline).
+- `PostgresRepositoryContractTests` menjalankannya pada PostgreSQL asli bila `ECOKOIN_TEST_PG_CONNECTION` diatur (dilewati bila tidak). Tiap tes memakai schema PostgreSQL sementara yang terisolasi dan dihapus setelahnya, sehingga tidak menyentuh data lain. Di CI, container `postgres:17` disediakan otomatis ([dokumen 7](07-setup.md)).
+
 ## Aturan operasional
 
-- `PRAGMA foreign_keys = ON;` dijalankan pada **setiap** koneksi.
-- Semua query diparameterisasi; tidak ada konkatenasi string SQL.
+- Foreign key selalu ditegakkan oleh PostgreSQL (tidak perlu `PRAGMA`).
+- Semua query diparameterisasi (`@param` / `NpgsqlParameter`); tidak ada konkatenasi string SQL.
 - Penulisan multi-tabel memakai transaksi.
 - Password tidak pernah disimpan polos; hanya `password_hash`.
+- Kredensial hanya lewat environment variable `ECOKOIN_DB_CONNECTION`; gunakan `SSL Mode=Require` untuk server remote dan pengguna database dengan hak minimum (tidak perlu superuser).
