@@ -146,7 +146,7 @@ namespace EcoKoin.WPF.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.TraceError("EcoKoin registration failed: {0}", ex.GetType().Name);
-                ValidationMessage.Text = "Akun belum dapat disimpan. Coba lagi dan pastikan folder data EcoKoin dapat diakses.";
+                ValidationMessage.Text = "Akun belum dapat disimpan. Coba lagi dan pastikan koneksi internet serta database EcoKoin tersedia.";
             }
             finally
             {

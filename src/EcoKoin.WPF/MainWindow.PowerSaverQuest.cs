@@ -8,14 +8,14 @@ namespace EcoKoin.WPF
 {
     public partial class MainWindow
     {
-        private void InitializePowerSaverQuest(DashboardViewModel dashboard, AuthUser user, SqliteAccountService accounts,
+        private void InitializePowerSaverQuest(DashboardViewModel dashboard, AuthUser user, AccountService accounts,
             WindowsPowerSaverStatus powerStatus)
         {
             TrackPowerSaverQuest(dashboard, user, accounts, powerStatus.IsActive, () => DateTimeOffset.Now,
                 new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) });
         }
 
-        private void TrackPowerSaverQuest(DashboardViewModel dashboard, AuthUser user, SqliteAccountService accounts,
+        private void TrackPowerSaverQuest(DashboardViewModel dashboard, AuthUser user, AccountService accounts,
             Func<bool?> isPowerSaverActive, Func<DateTimeOffset> getTime, DispatcherTimer timer)
         {
             string userId = user.UserId!;
@@ -36,15 +36,15 @@ namespace EcoKoin.WPF
                     var now = getTime();
                     var date = DateOnly.FromDateTime(now.LocalDateTime);
                     var previous = previousActiveSample;
-                    var result = await Task.Run(() =>
+                    var result = await Task.Run(async () =>
                     {
                         var repository = accounts.GetRepository();
-                        var quest = repository.EnsureDailyQuests(userId, date).OfType<PowerSaverQuest>().First();
+                        var quest = (await repository.EnsureDailyQuestsAsync(userId, date)).OfType<PowerSaverQuest>().First();
                         if (claim is not null)
                         {
-                            repository.TryClaimPowerSaverQuest(userId, claim.QuestId, date);
-                            return (Quest: repository.EnsureDailyQuests(userId, date).OfType<PowerSaverQuest>().First(),
-                                Active: (bool?)null, Balance: repository.GetUserByUsername(user.Email)?.TotalEcoKoin);
+                            await repository.TryClaimPowerSaverQuestAsync(userId, claim.QuestId, date);
+                            return (Quest: (await repository.EnsureDailyQuestsAsync(userId, date)).OfType<PowerSaverQuest>().First(),
+                                Active: (bool?)null, Balance: (await repository.GetUserByUsernameAsync(user.Email))?.TotalEcoKoin);
                         }
 
                         bool? active = isPowerSaverActive();
@@ -54,11 +54,11 @@ namespace EcoKoin.WPF
                             now - last <= TimeSpan.FromSeconds(75) &&
                             now.ToUnixTimeSeconds() / 60 == last.ToUnixTimeSeconds() / 60 + 1)
                         {
-                            repository.RecordPowerSaverMinute(userId, quest.QuestId, date, now.ToUnixTimeSeconds() / 60);
-                            quest = repository.EnsureDailyQuests(userId, date).OfType<PowerSaverQuest>().First();
+                            await repository.RecordPowerSaverMinuteAsync(userId, quest.QuestId, date, now.ToUnixTimeSeconds() / 60);
+                            quest = (await repository.EnsureDailyQuestsAsync(userId, date)).OfType<PowerSaverQuest>().First();
                         }
 
-                        return (Quest: quest, Active: active, Balance: repository.GetUserByUsername(user.Email)?.TotalEcoKoin);
+                        return (Quest: quest, Active: active, Balance: (await repository.GetUserByUsernameAsync(user.Email))?.TotalEcoKoin);
                     });
                     if (closed)
                         return;

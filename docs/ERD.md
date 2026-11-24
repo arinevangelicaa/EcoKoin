@@ -2,7 +2,7 @@
 
 Sumber: `docs/erd-hw.pdf` (Modul 4 — Perancangan Basis Data).
 
-> Ini ERD **v1** (baseline tugas). Skema yang dipakai kode sekarang adalah **v2** (kolom tambahan `password_hash`, `quest_type`, `reward_coin`, `is_claimed`, `quest_date`; relasi sama): lihat [04-database.md](04-database.md) dan `src/EcoKoin.Core/Database/schema.sql`.
+> Ini ERD **v1** (baseline tugas). Skema yang dipakai kode sekarang adalah **v2** (kolom tambahan `password_hash`, `quest_type`, `reward_coin`, `is_claimed`, `quest_date`; relasi sama): lihat [04-database.md](04-database.md) dan `src/EcoKoin.Core/Database/schema.sql` (PostgreSQL; aplikasi tidak memakai database lokal).
 
 ```mermaid
 erDiagram

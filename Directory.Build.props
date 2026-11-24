@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- Lets non-Windows machines (Linux dev boxes, the Ubuntu CI job) compile the WPF project, so
+         `dotnet build EcoKoin.sln` works everywhere. Running the WPF app still requires Windows. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+</Project>

@@ -52,9 +52,24 @@ public class PowerSessionTests
     }
 
     [Fact]
-    public void SaveToDatabase_NullRepo_Throws()
+    public void SaveToDatabaseAsync_NullRepo_Throws()
     {
         var s = new PowerSession("s1", "u1", "scheme", Start);
-        Assert.Throws<ArgumentNullException>(() => s.SaveToDatabase(null!));
+        Assert.Throws<ArgumentNullException>(() => { _ = s.SaveToDatabaseAsync(null!); });
+    }
+
+    [Fact]
+    public async Task SaveToDatabaseAsync_DelegatesToRepository()
+    {
+        using var db = new EcoKoin.Core.Tests.Support.TempDb();
+        await db.Repository.SaveUserAsync(new User("u1", "hermione", "1.salt.hash", 0, Start));
+        var s = new PowerSession("s1", "u1", "scheme-power-saver", Start);
+        s.Close(Start.AddHours(1), 25);
+
+        await s.SaveToDatabaseAsync(db.Repository);
+
+        var saved = Assert.Single(await db.Repository.GetWeeklyReportDataAsync("u1", Start.AddHours(2)));
+        Assert.Equal("s1", saved.SessionId);
+        Assert.Equal(25, saved.WattSaved);
     }
 }

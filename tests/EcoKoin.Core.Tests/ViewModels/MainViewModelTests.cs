@@ -1,13 +1,14 @@
 using System.Net;
 using System.Net.Http;
 using EcoKoin.Core.Tests.Services;
+using EcoKoin.Core.Tests.Support;
 using EcoKoin.Models;
 using EcoKoin.Services;
 using EcoKoin.ViewModels;
 
 namespace EcoKoin.Core.Tests.ViewModels;
 
-public class MainViewModelTests : IDisposable
+public class MainViewModelTests : IAsyncLifetime, IDisposable
 {
     private const string WeatherJson = """
         {"weather":[{"main":"Clouds"}],"main":{"temp":27.5,"humidity":80},"clouds":{"all":70}}
@@ -28,37 +29,40 @@ public class MainViewModelTests : IDisposable
         _http.Respond = _ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(WeatherJson) };
 
         _user = User.Register("hermione", "secret", _clock);
-        _db.Repository.SaveUser(_user);
 
         var power = new PowerMonitorService(_idle, _runner, _clock);
         var weather = new WeatherService(new HttpClient(_http), new WeatherOptions { ApiKey = "KEY", CacheMinutes = 10 }, _clock);
         _vm = new MainViewModel(_db.Repository, power, weather, _clock);
     }
 
+    public Task InitializeAsync() => _db.Repository.SaveUserAsync(_user);
+
+    public Task DisposeAsync() => Task.CompletedTask;
+
     public void Dispose() => _db.Dispose();
 
     private DailyQuest Quest(QuestType type) => _vm.Quests.Single(q => q.Type == type);
-    private User Reload() => _db.Repository.GetUserByUsername("hermione")!;
+    private async Task<User> ReloadAsync() => (await _db.Repository.GetUserByUsernameAsync("hermione"))!;
 
     [Fact]
-    public void Initialize_UnknownUser_Throws()
+    public async Task Initialize_UnknownUser_Throws()
     {
-        Assert.Throws<InvalidOperationException>(() => _vm.Initialize("nobody"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _vm.InitializeAsync("nobody"));
     }
 
     [Fact]
-    public void RefreshDashboard_BeforeInitialize_Throws()
+    public async Task RefreshDashboard_BeforeInitialize_Throws()
     {
-        Assert.Throws<InvalidOperationException>(() => _vm.RefreshDashboard());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _vm.RefreshDashboardAsync());
     }
 
     [Fact]
-    public void Initialize_LoadsUserQuestsPetSchemesWeatherAndReport()
+    public async Task Initialize_LoadsUserQuestsPetSchemesWeatherAndReport()
     {
         var changed = new List<string?>();
         _vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
 
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
 
         Assert.Equal("hermione", _vm.CurrentUser!.Username);
         Assert.Equal(3, _vm.Quests.Count);
@@ -77,21 +81,21 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Initialize_PersistsQuestsAndPet()
+    public async Task Initialize_PersistsQuestsAndPet()
     {
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
 
-        var reloaded = Reload();
+        var reloaded = await ReloadAsync();
         Assert.Equal(3, reloaded.Quests.Count);
         Assert.NotNull(reloaded.Pet);
     }
 
     [Fact]
-    public void Initialize_WeatherDown_NoCache_IsStaleWithoutData()
+    public async Task Initialize_WeatherDown_NoCache_IsStaleWithoutData()
     {
         _http.Respond = _ => new HttpResponseMessage(HttpStatusCode.InternalServerError);
 
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
 
         Assert.Null(_vm.CurrentWeather);
         Assert.True(_vm.WeatherStale);
@@ -100,13 +104,13 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public void RefreshDashboard_WeatherFailsLater_KeepsLastAndMarksStale()
+    public async Task RefreshDashboard_WeatherFailsLater_KeepsLastAndMarksStale()
     {
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
         _http.Respond = _ => new HttpResponseMessage(HttpStatusCode.InternalServerError);
         _clock.Advance(TimeSpan.FromMinutes(30));
 
-        _vm.RefreshDashboard();
+        await _vm.RefreshDashboardAsync();
 
         Assert.Equal(70, _vm.CurrentWeather!.Cloudiness);
         Assert.True(_vm.WeatherStale);
@@ -115,7 +119,7 @@ public class MainViewModelTests : IDisposable
     [Fact]
     public async Task RefreshDashboardAsync_UpdatesWeather()
     {
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
         _http.Respond = _ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("""{"weather":[{"main":"Clear"}],"main":{"temp":31,"humidity":50},"clouds":{"all":10}}""")
@@ -129,72 +133,72 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public void RefreshDashboard_UpdatesIdleAndWattEstimate()
+    public async Task RefreshDashboard_UpdatesIdleAndWattEstimate()
     {
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
         _vm.ApplyScheme(_vm.Schemes.First(s => s.SchemeName == "Power Saver"));
         _idle.Idle = TimeSpan.FromMinutes(6);
 
-        _vm.RefreshDashboard();
+        await _vm.RefreshDashboardAsync();
 
         Assert.True(_vm.IsIdle);
         Assert.Equal(32.5 + 65 * 0.9, _vm.EstimatedWattSaved, 6);
     }
 
     [Fact]
-    public void RefreshDashboard_BuildsWeeklyReportFromSessions()
+    public async Task RefreshDashboard_BuildsWeeklyReportFromSessions()
     {
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
         var session = new PowerSession("s1", _user.UserId, "scheme-power-saver", T0.AddHours(-2));
         session.Close(T0.AddHours(-1), 30); // 30 W for 1 h = 0.03 kWh
-        _db.Repository.SavePowerSession(session);
+        await _db.Repository.SavePowerSessionAsync(session);
 
-        _vm.RefreshDashboard();
+        await _vm.RefreshDashboardAsync();
 
         Assert.Equal(0.03, _vm.WeeklyReport!.TotalKwhSaved, 6);
     }
 
     [Fact]
-    public void ApplyRecommendationCommand_CompletesWeatherQuestAndPersists()
+    public async Task ApplyRecommendationCommand_CompletesWeatherQuestAndPersists()
     {
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
         Assert.True(_vm.ApplyRecommendationCommand.CanExecute(null));
 
-        _vm.ApplyRecommendationCommand.Execute(null);
+        await _vm.ApplyRecommendationCommand.ExecuteAsync(null);
 
         Assert.Equal(1, Quest(QuestType.WeatherAdaptive).CurrentProgress);
         Assert.Equal(0, Quest(QuestType.Sleep).CurrentProgress);
-        Assert.Equal(1, Reload().Quests.Single(q => q.Type == QuestType.WeatherAdaptive).CurrentProgress);
+        Assert.Equal(1, (await ReloadAsync()).Quests.Single(q => q.Type == QuestType.WeatherAdaptive).CurrentProgress);
     }
 
     [Fact]
-    public void ApplyRecommendationCommand_NoWeather_CannotExecute()
+    public async Task ApplyRecommendationCommand_NoWeather_CannotExecute()
     {
         _http.Respond = _ => new HttpResponseMessage(HttpStatusCode.InternalServerError);
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
 
         Assert.False(_vm.ApplyRecommendationCommand.CanExecute(null));
     }
 
     [Fact]
-    public void ClaimQuestCommand_IncompleteQuest_CannotExecute()
+    public async Task ClaimQuestCommand_IncompleteQuest_CannotExecute()
     {
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
 
         Assert.False(_vm.ClaimQuestCommand.CanExecute(Quest(QuestType.Sleep)));
     }
 
     [Fact]
-    public void ClaimQuestCommand_AwardsKoinUpdatesPetAndPersists()
+    public async Task ClaimQuestCommand_AwardsKoinUpdatesPetAndPersists()
     {
-        _vm.Initialize("hermione");
-        _vm.RecordEvent(new QuestEvent(QuestEventKind.SleepEntered)); // sleep quest: +30 => Segar
+        await _vm.InitializeAsync("hermione");
+        await _vm.RecordEventAsync(new QuestEvent(QuestEventKind.SleepEntered)); // sleep quest: +30 => Segar
         var sleep = Quest(QuestType.Sleep);
         var changed = new List<string?>();
         _vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
         Assert.True(_vm.ClaimQuestCommand.CanExecute(sleep));
 
-        _vm.ClaimQuestCommand.Execute(sleep);
+        await _vm.ClaimQuestCommand.ExecuteAsync(sleep);
 
         Assert.True(sleep.IsClaimed);
         Assert.Equal(30, _vm.CurrentUser!.TotalEcoKoin);
@@ -202,47 +206,47 @@ public class MainViewModelTests : IDisposable
         Assert.Contains(nameof(MainViewModel.CurrentUser), changed);
         Assert.False(_vm.ClaimQuestCommand.CanExecute(sleep));
 
-        var reloaded = Reload();
+        var reloaded = await ReloadAsync();
         Assert.Equal(30, reloaded.TotalEcoKoin);
         Assert.Equal(PetState.Segar, reloaded.Pet!.CurrentState);
         Assert.True(reloaded.Quests.Single(q => q.Type == QuestType.Sleep).IsClaimed);
     }
 
     [Fact]
-    public void ClaimQuestCommand_TwiceDoesNotDoublePay()
+    public async Task ClaimQuestCommand_TwiceDoesNotDoublePay()
     {
-        _vm.Initialize("hermione");
-        _vm.RecordEvent(new QuestEvent(QuestEventKind.WeatherRecommendationApplied));
+        await _vm.InitializeAsync("hermione");
+        await _vm.RecordEventAsync(new QuestEvent(QuestEventKind.WeatherRecommendationApplied));
         var q = Quest(QuestType.WeatherAdaptive);
 
-        _vm.ClaimQuestCommand.Execute(q);
-        _vm.ClaimQuestCommand.Execute(q);
+        await _vm.ClaimQuestCommand.ExecuteAsync(q);
+        await _vm.ClaimQuestCommand.ExecuteAsync(q);
 
         Assert.Equal(15, _vm.CurrentUser!.TotalEcoKoin);
         Assert.Equal(PetState.Normal, _vm.CurrentUser.Pet!.CurrentState);
     }
 
     [Fact]
-    public void OnTick_AccruesPowerSaverMinutesOnlyWhenSaverActive()
+    public async Task OnTick_AccruesPowerSaverMinutesOnlyWhenSaverActive()
     {
-        _vm.Initialize("hermione"); // Balanced active: no accrual
+        await _vm.InitializeAsync("hermione"); // Balanced active: no accrual
 
-        _vm.OnTick(TimeSpan.FromMinutes(5));
+        await _vm.OnTickAsync(TimeSpan.FromMinutes(5));
         Assert.Equal(0, Quest(QuestType.PowerSaver).CurrentProgress);
 
         _vm.ApplyScheme(_vm.Schemes.First(s => s.SchemeName == "Power Saver"));
-        _vm.OnTick(TimeSpan.FromSeconds(90));
+        await _vm.OnTickAsync(TimeSpan.FromSeconds(90));
         Assert.Equal(1, Quest(QuestType.PowerSaver).CurrentProgress);
 
-        _vm.OnTick(TimeSpan.FromSeconds(30)); // remainder 30s + 30s = 1 more minute
+        await _vm.OnTickAsync(TimeSpan.FromSeconds(30)); // remainder 30s + 30s = 1 more minute
         Assert.Equal(2, Quest(QuestType.PowerSaver).CurrentProgress);
-        Assert.Equal(2, Reload().Quests.Single(q => q.Type == QuestType.PowerSaver).CurrentProgress);
+        Assert.Equal(2, (await ReloadAsync()).Quests.Single(q => q.Type == QuestType.PowerSaver).CurrentProgress);
     }
 
     [Fact]
-    public void ApplyScheme_RunsPowercfgAndSetsActive()
+    public async Task ApplyScheme_RunsPowercfgAndSetsActive()
     {
-        _vm.Initialize("hermione");
+        await _vm.InitializeAsync("hermione");
         var saver = _vm.Schemes.First(s => s.SchemeName == "Power Saver");
 
         _vm.ApplyScheme(saver);
@@ -253,16 +257,16 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public void OnTick_AcrossMidnight_LoadsFreshQuestsAndResetsPet()
+    public async Task OnTick_AcrossMidnight_LoadsFreshQuestsAndResetsPet()
     {
-        _vm.Initialize("hermione");
-        _vm.RecordEvent(new QuestEvent(QuestEventKind.SleepEntered));
-        _vm.ClaimQuestCommand.Execute(Quest(QuestType.Sleep));
+        await _vm.InitializeAsync("hermione");
+        await _vm.RecordEventAsync(new QuestEvent(QuestEventKind.SleepEntered));
+        await _vm.ClaimQuestCommand.ExecuteAsync(Quest(QuestType.Sleep));
         Assert.Equal(PetState.Segar, _vm.CurrentUser!.Pet!.CurrentState);
         var oldIds = _vm.Quests.Select(q => q.QuestId).ToHashSet();
 
         _clock.Advance(TimeSpan.FromDays(1));
-        _vm.OnTick(TimeSpan.FromMinutes(1));
+        await _vm.OnTickAsync(TimeSpan.FromMinutes(1));
 
         Assert.Equal(3, _vm.Quests.Count);
         Assert.All(_vm.Quests, q => Assert.DoesNotContain(q.QuestId, oldIds));
@@ -272,15 +276,66 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public void RecordEvent_DoesNotProgressClaimedQuest()
+    public async Task RecordEvent_DoesNotProgressClaimedQuest()
     {
-        _vm.Initialize("hermione");
-        _vm.RecordEvent(new QuestEvent(QuestEventKind.SleepEntered));
-        _vm.ClaimQuestCommand.Execute(Quest(QuestType.Sleep));
+        await _vm.InitializeAsync("hermione");
+        await _vm.RecordEventAsync(new QuestEvent(QuestEventKind.SleepEntered));
+        await _vm.ClaimQuestCommand.ExecuteAsync(Quest(QuestType.Sleep));
 
-        _vm.RecordEvent(new QuestEvent(QuestEventKind.SleepEntered));
+        await _vm.RecordEventAsync(new QuestEvent(QuestEventKind.SleepEntered));
 
         Assert.Equal(1, Quest(QuestType.Sleep).CurrentProgress);
         Assert.Equal(30, _vm.CurrentUser!.TotalEcoKoin);
+    }
+
+    [Fact]
+    public async Task Command_RepositoryFailure_SetsLastErrorAndRaisesCommandFailed()
+    {
+        var failing = new ThrowingRepository(_db.Repository);
+        var power = new PowerMonitorService(_idle, _runner, _clock);
+        var weather = new WeatherService(new HttpClient(_http), new WeatherOptions { ApiKey = "KEY", CacheMinutes = 10 }, _clock);
+        var vm = new MainViewModel(failing, power, weather, _clock);
+        await vm.InitializeAsync("hermione");
+        var raised = new TaskCompletionSource<Exception>();
+        vm.CommandFailed += (_, ex) => raised.TrySetResult(ex);
+        failing.FailReads = true;
+
+        vm.RefreshCommand.Execute(null); // RefreshDashboardAsync reads the weekly report -> fails
+
+        var ex = await raised.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.IsType<InvalidOperationException>(ex);
+        Assert.Same(ex, vm.LastError);
+    }
+
+    private sealed class ThrowingRepository(IAppRepository inner) : IAppRepository
+    {
+        public bool FailWrites { get; set; }
+        public bool FailReads { get; set; }
+
+        private void Check(bool flag) { if (flag) throw new InvalidOperationException("db down"); }
+
+        public Task InitializeDatabaseAsync(CancellationToken ct = default) => inner.InitializeDatabaseAsync(ct);
+        public Task SaveUserAsync(User user, CancellationToken ct = default) { Check(FailWrites); return inner.SaveUserAsync(user, ct); }
+        public Task<User?> GetUserByUsernameAsync(string username, CancellationToken ct = default) => inner.GetUserByUsernameAsync(username, ct);
+        public Task UpdateUserProfileAsync(User user, CancellationToken ct = default) { Check(FailWrites); return inner.UpdateUserProfileAsync(user, ct); }
+        public Task SavePowerSessionAsync(PowerSession session, CancellationToken ct = default) { Check(FailWrites); return inner.SavePowerSessionAsync(session, ct); }
+        public Task SaveQuestProgressAsync(DailyQuest quest, CancellationToken ct = default) { Check(FailWrites); return inner.SaveQuestProgressAsync(quest, ct); }
+        public Task<IReadOnlyList<PowerSession>> GetWeeklyReportDataAsync(string userId, DateTime now, CancellationToken ct = default) { Check(FailReads); return inner.GetWeeklyReportDataAsync(userId, now, ct); }
+        public Task<IReadOnlyList<PowerScheme>> GetPowerSchemesAsync(CancellationToken ct = default) => inner.GetPowerSchemesAsync(ct);
+        public Task<IReadOnlyList<DailyQuest>> EnsureDailyQuestsAsync(string userId, DateOnly date, CancellationToken ct = default) => inner.EnsureDailyQuestsAsync(userId, date, ct);
+        public Task RecordPowerSaverMinuteAsync(string userId, string questId, DateOnly date, long sampleMinute, CancellationToken ct = default) { Check(FailWrites); return inner.RecordPowerSaverMinuteAsync(userId, questId, date, sampleMinute, ct); }
+        public Task<long> GetPowerSaverMinutesAsync(string userId, DateOnly startDate, DateOnly endDate, CancellationToken ct = default) { Check(FailReads); return inner.GetPowerSaverMinutesAsync(userId, startDate, endDate, ct); }
+        public Task<bool> TryClaimPowerSaverQuestAsync(string userId, string questId, DateOnly date, CancellationToken ct = default) { Check(FailWrites); return inner.TryClaimPowerSaverQuestAsync(userId, questId, date, ct); }
+        public Task<bool> TryApplyWeatherQuestAsync(string userId, DateOnly date, CancellationToken ct = default) { Check(FailWrites); return inner.TryApplyWeatherQuestAsync(userId, date, ct); }
+        public Task<bool> TryClaimWeatherQuestAsync(string userId, DateOnly date, CancellationToken ct = default) { Check(FailWrites); return inner.TryClaimWeatherQuestAsync(userId, date, ct); }
+        public Task<int> GetCoinsEarnedTodayAsync(string userId, DateOnly date, CancellationToken ct = default) { Check(FailReads); return inner.GetCoinsEarnedTodayAsync(userId, date, ct); }
+        public Task<IReadOnlyDictionary<DateOnly, long>> GetDailyPowerSaverMinutesAsync(string userId, DateOnly startDate, DateOnly endDate, CancellationToken ct = default) { Check(FailReads); return inner.GetDailyPowerSaverMinutesAsync(userId, startDate, endDate, ct); }
+        public Task<IReadOnlyList<PowerSession>> GetPowerSessionsAsync(string userId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default) { Check(FailReads); return inner.GetPowerSessionsAsync(userId, fromInclusive, toExclusive, ct); }
+        public Task<int> GetTotalEcoKoinAsync(string userId, CancellationToken ct = default) { Check(FailReads); return inner.GetTotalEcoKoinAsync(userId, ct); }
+        public Task<int> GetKoinEarnedOnAsync(string userId, DateOnly date, CancellationToken ct = default) { Check(FailReads); return inner.GetKoinEarnedOnAsync(userId, date, ct); }
+        public Task<IReadOnlyList<(DateOnly Date, int Koin)>> GetKoinEarnedPerDayAsync(string userId, DateOnly fromInclusive, DateOnly toInclusive, CancellationToken ct = default) { Check(FailReads); return inner.GetKoinEarnedPerDayAsync(userId, fromInclusive, toInclusive, ct); }
+        public Task<bool> TryClaimQuestAsync(string userId, string questId, DateOnly date, CancellationToken ct = default) { Check(FailWrites); return inner.TryClaimQuestAsync(userId, questId, date, ct); }
+        public Task<int> AddQuestProgressAsync(string userId, QuestType type, DateOnly date, int amount, CancellationToken ct = default) { Check(FailWrites); return inner.AddQuestProgressAsync(userId, type, date, amount, ct); }
+        public Task<EcoPet> GetOrCreatePetAsync(string userId, DateOnly today, CancellationToken ct = default) { Check(FailWrites); return inner.GetOrCreatePetAsync(userId, today, ct); }
     }
 }

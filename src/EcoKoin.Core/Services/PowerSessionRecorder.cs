@@ -7,7 +7,8 @@ namespace EcoKoin.Services
     /// POWER_SESSIONS rows so <see cref="CarbonFinancialReport"/> has real data.
     /// IMPORTANT: every WattSaved value written here is an ESTIMATE derived from
     /// <see cref="PowerOptions.BaselineWatt"/> (same model as <see cref="PowerMonitorService.CalculateWattSaved"/>),
-    /// not a measurement. Thread-safe: the WPF app may call from a timer thread and a system-event thread.
+    /// not a measurement. Thread-safe: the WPF app may call from a timer thread and a system-event thread (calls are serialised
+    /// with a <see cref="SemaphoreSlim"/>, so it is safe to await them from any thread).
     /// </summary>
     public class PowerSessionRecorder
     {
@@ -21,14 +22,14 @@ namespace EcoKoin.Services
 
         private sealed record OpenSession(string SessionId, DateTime Start, DateTime LastTick);
 
-        private readonly SqliteRepository _repository;
+        private readonly IAppRepository _repository;
         private readonly IClock _clock;
         private readonly PowerOptions _options;
-        private readonly object _gate = new();
+        private readonly SemaphoreSlim _gate = new(1, 1);
         private readonly Dictionary<string, OpenSession> _open = new();
         private int? _powerSaverCpuMax;
 
-        public PowerSessionRecorder(SqliteRepository repository, IClock clock, PowerOptions? options = null)
+        public PowerSessionRecorder(IAppRepository repository, IClock clock, PowerOptions? options = null)
         {
             ArgumentNullException.ThrowIfNull(repository);
             ArgumentNullException.ThrowIfNull(clock);
@@ -46,9 +47,10 @@ namespace EcoKoin.Services
         /// When false or null the run is forgotten (already persisted) and false is returned.
         /// Returns true when a row was written.
         /// </summary>
-        public bool RecordPowerSaverTick(string userId, bool? powerSaverActive)
+        public async Task<bool> RecordPowerSaverTickAsync(string userId, bool? powerSaverActive, CancellationToken ct = default)
         {
-            lock (_gate)
+            await _gate.WaitAsync(ct).ConfigureAwait(false);
+            try
             {
                 if (powerSaverActive != true)
                 {
@@ -57,7 +59,7 @@ namespace EcoKoin.Services
                 }
 
                 DateTime now = _clock.Now;
-                double wattSaved = _options.BaselineWatt * (100 - GetPowerSaverCpuMax()) / 100.0;
+                double wattSaved = _options.BaselineWatt * (100 - await GetPowerSaverCpuMaxAsync(ct).ConfigureAwait(false)) / 100.0;
 
                 string sessionId;
                 DateTime start;
@@ -72,9 +74,14 @@ namespace EcoKoin.Services
                     start = now;
                 }
 
-                _repository.SavePowerSession(new PowerSession(sessionId, userId, PowerSaverSchemeId, start, now, wattSaved));
+                await _repository.SavePowerSessionAsync(
+                    new PowerSession(sessionId, userId, PowerSaverSchemeId, start, now, wattSaved), ct).ConfigureAwait(false);
                 _open[userId] = new OpenSession(sessionId, start, now);
                 return true;
+            }
+            finally
+            {
+                _gate.Release();
             }
         }
 
@@ -83,26 +90,32 @@ namespace EcoKoin.Services
         /// WattSaved is an ESTIMATE: BaselineWatt * 0.9 (the idle/sleep saving used by <see cref="PowerMonitorService"/>).
         /// Returns false (nothing written) for shorter or inverted intervals.
         /// </summary>
-        public bool RecordSleep(string userId, DateTime suspendedAt, DateTime resumedAt)
+        public async Task<bool> RecordSleepAsync(string userId, DateTime suspendedAt, DateTime resumedAt, CancellationToken ct = default)
         {
             if (resumedAt < suspendedAt || resumedAt - suspendedAt < MinSleepDuration)
                 return false;
 
-            lock (_gate)
+            await _gate.WaitAsync(ct).ConfigureAwait(false);
+            try
             {
-                _repository.SavePowerSession(new PowerSession(
-                    Guid.NewGuid().ToString(), userId, BalancedSchemeId, suspendedAt, resumedAt, _options.BaselineWatt * 0.9));
+                await _repository.SavePowerSessionAsync(new PowerSession(
+                    Guid.NewGuid().ToString(), userId, BalancedSchemeId, suspendedAt, resumedAt, _options.BaselineWatt * 0.9), ct)
+                    .ConfigureAwait(false);
                 return true;
+            }
+            finally
+            {
+                _gate.Release();
             }
         }
 
-        private int GetPowerSaverCpuMax()
+        private async Task<int> GetPowerSaverCpuMaxAsync(CancellationToken ct)
         {
             if (_powerSaverCpuMax is { } cached)
                 return cached;
 
             int value = FallbackPowerSaverCpuMax;
-            foreach (var scheme in _repository.GetPowerSchemes())
+            foreach (var scheme in await _repository.GetPowerSchemesAsync(ct).ConfigureAwait(false))
             {
                 if (scheme.SchemeId == PowerSaverSchemeId)
                 {

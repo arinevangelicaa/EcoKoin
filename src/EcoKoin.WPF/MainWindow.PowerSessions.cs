@@ -16,7 +16,7 @@ namespace EcoKoin.WPF
         // Records POWER_SESSIONS (Power Saver active periods, sleep periods) that the analytics read, and calls
         // dashboard.NotifyDataChanged() on the UI thread when one was written.
         private void InitializePowerSessions(DashboardViewModel dashboard, AuthUser user,
-            SqliteAccountService accounts, WindowsPowerSaverStatus powerStatus, IClock clock)
+            AccountService accounts, WindowsPowerSaverStatus powerStatus, IClock clock)
         {
             string? userId = user.UserId;
             if (userId is null)
@@ -48,11 +48,11 @@ namespace EcoKoin.WPF
                         && tickAt - previous >= PowerSessionGapSleep
                         && !(watcher?.LastResumeAt is { } resumed && resumed >= previous);
 
-                    var outcome = await Task.Run(() =>
+                    var outcome = await Task.Run(async () =>
                     {
                         bool? active = powerStatus.IsActive();
-                        bool wrote = recorder.RecordPowerSaverTick(userId, active);
-                        bool sleepSaved = missedSleep && recorder.RecordSleep(userId, previousTick!.Value, tickAt);
+                        bool wrote = await recorder.RecordPowerSaverTickAsync(userId, active);
+                        bool sleepSaved = missedSleep && await recorder.RecordSleepAsync(userId, previousTick!.Value, tickAt);
                         return (Wrote: wrote, SleepSaved: sleepSaved);
                     });
                     if (closed)
@@ -77,7 +77,7 @@ namespace EcoKoin.WPF
             watcher = new PowerEventWatcher(clock, idleProvider.GetIdleTime, async (suspendedAt, resumedAt, idle) =>
             {
                 // Thread-pool thread: DB write here, UI work marshalled below.
-                bool saved = recorder.RecordSleep(userId, suspendedAt, resumedAt);
+                bool saved = await recorder.RecordSleepAsync(userId, suspendedAt, resumedAt);
                 if (!saved && resumedAt - suspendedAt < PowerSessionMinSleep)
                     return;
 

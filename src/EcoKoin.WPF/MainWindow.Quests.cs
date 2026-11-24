@@ -14,7 +14,7 @@ namespace EcoKoin.WPF
         // MainWindow.PowerSaverQuest.cs and feeds the same summary through DashboardViewModel.
         private DashboardViewModel? _questDashboard;
         private AuthUser? _questUser;
-        private SqliteAccountService? _questAccounts;
+        private AccountService? _questAccounts;
         private IClock? _questClock;
         private int _questLoadVersion;
         private bool _questClosed;
@@ -23,7 +23,7 @@ namespace EcoKoin.WPF
         private bool _questLoadFailed; // retried by the one-minute timer instead of staying broken until midnight
 
         private void InitializeDashboardQuests(DashboardViewModel dashboard, AuthUser user,
-            SqliteAccountService accounts, IClock clock)
+            AccountService accounts, IClock clock)
         {
             _questDashboard = dashboard;
             _questUser = user;
@@ -63,11 +63,11 @@ namespace EcoKoin.WPF
             };
         }
 
-        private (IReadOnlyList<DailyQuest> Quests, int Balance) LoadQuestsFromDatabase(string userId, DateOnly date)
+        private async Task<(IReadOnlyList<DailyQuest> Quests, int Balance)> LoadQuestsFromDatabaseAsync(string userId, DateOnly date)
         {
             var repository = _questAccounts!.GetRepository();
-            var quests = repository.EnsureDailyQuests(userId, date);
-            return (quests, repository.GetTotalEcoKoin(userId));
+            var quests = await repository.EnsureDailyQuestsAsync(userId, date);
+            return (quests, await repository.GetTotalEcoKoinAsync(userId));
         }
 
         private void ApplyQuests(IReadOnlyList<DailyQuest> quests, int balance, DateOnly date)
@@ -101,7 +101,7 @@ namespace EcoKoin.WPF
             var date = DateOnly.FromDateTime(_questClock.Now);
             try
             {
-                var result = await Task.Run(() => LoadQuestsFromDatabase(userId, date));
+                var result = await LoadQuestsFromDatabaseAsync(userId, date);
                 if (_questClosed || version != _questLoadVersion)
                     return;
 
@@ -129,13 +129,15 @@ namespace EcoKoin.WPF
             try
             {
                 int version = ++_questLoadVersion;
-                var result = await Task.Run(() =>
+                var result = await ClaimAndLoadAsync();
+
+                async Task<(bool Claimed, IReadOnlyList<DailyQuest> Quests, int Balance)> ClaimAndLoadAsync()
                 {
                     var repository = _questAccounts!.GetRepository();
-                    bool claimed = repository.TryClaimQuest(userId, questId, questDate);
-                    var (quests, balance) = LoadQuestsFromDatabase(userId, DateOnly.FromDateTime(_questClock!.Now));
-                    return (Claimed: claimed, Quests: quests, Balance: balance);
-                });
+                    bool claimed = await repository.TryClaimQuestAsync(userId, questId, questDate);
+                    var (quests, balance) = await LoadQuestsFromDatabaseAsync(userId, DateOnly.FromDateTime(_questClock!.Now));
+                    return (claimed, quests, balance);
+                }
                 if (_questClosed)
                     return;
 
@@ -175,14 +177,16 @@ namespace EcoKoin.WPF
             try
             {
                 int version = ++_questLoadVersion;
-                var result = await Task.Run(() =>
+                var result = await AddProgressAndLoadAsync();
+
+                async Task<(int Progress, IReadOnlyList<DailyQuest> Quests, int Balance)> AddProgressAndLoadAsync()
                 {
                     var repository = _questAccounts!.GetRepository();
-                    repository.EnsureDailyQuests(userId, date);
-                    int progress = repository.AddQuestProgress(userId, questType, date, amount);
-                    var (quests, balance) = LoadQuestsFromDatabase(userId, date);
-                    return (Progress: progress, Quests: quests, Balance: balance);
-                });
+                    await repository.EnsureDailyQuestsAsync(userId, date);
+                    int progress = await repository.AddQuestProgressAsync(userId, questType, date, amount);
+                    var (quests, balance) = await LoadQuestsFromDatabaseAsync(userId, date);
+                    return (progress, quests, balance);
+                }
                 if (_questClosed)
                     return;
 

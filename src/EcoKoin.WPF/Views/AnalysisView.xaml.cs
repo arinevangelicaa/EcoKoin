@@ -147,8 +147,7 @@ namespace EcoKoin.WPF.Views
             var today = DateOnly.FromDateTime(DateTime.Now);
             try
             {
-                var periods = await Task.Run(() =>
-                    AnalyticsLoader.LoadPeriods(accounts.GetRepository(), userId, today));
+                var periods = await AnalyticsLoader.LoadPeriodsAsync(accounts.GetRepository(), userId, today);
                 if (request != _loadRequest)
                     return;
 
